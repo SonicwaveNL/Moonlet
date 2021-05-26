@@ -1,182 +1,214 @@
-from functools import reduce
 from enum import Enum
-import re
 
 
 class Token:
-    
     def __init__(self):
-        self.expr = r''
-        self.args = []
+        self.expr = r""
 
     def __str__(self) -> str:
-        return "Token"
-
-
-class Variable(Token):
-    
-    def __init__(self):
-        super().__init__()
-        self.expr = r''
-        self.args = []
-
-    def __str__(self) -> str:
-        return "Variable"
+        return "TOKEN"
 
 
 class Integer(Token):
-    
     def __init__(self):
         super().__init__()
-        self.expr = r''
-        self.args = []
+        self.expr = r"([-+]?\d+)"
 
     def __str__(self) -> str:
-        return "Integer"
+        return "INTEGER"
 
 
 class Float(Token):
-    
     def __init__(self):
         super().__init__()
-        self.expr = r''
-        self.args = []
+        self.expr = r"([-+]?\d*\.\d+)"
 
     def __str__(self) -> str:
-        return "Float"
+        return "FLOAT"
 
 
 class String(Token):
-    
     def __init__(self):
         super().__init__()
-        self.expr = r''
-        self.args = []
+        self.expr = r"([a-zA-Z])+"
 
     def __str__(self) -> str:
-        return "String"
-
-
-class Func(Token):
-    
-    def __init__(self):
-        super().__init__()
-        self.expr = r''
-        self.args = []
-
-    def __str__(self) -> str:
-        return "Func"
-
-
-class If(Token):
-    
-    def __init__(self):
-        super().__init__()
-        self.expr = r''
-        self.args = []
-
-    def __str__(self) -> str:
-        return "If"
-
-
-class Goto(Token):
-    
-    def __init__(self):
-        super().__init__()
-        self.expr = r''
-        self.args = []
-
-    def __str__(self) -> str:
-        return "Goto"
+        return "STRING"
 
 
 class Equal(Token):
-    
     def __init__(self):
         super().__init__()
-        self.expr = r''
-        self.args = []
+        self.expr = r"=="
 
     def __str__(self) -> str:
-        return "Equal"
+        return "EQUAL"
 
 
 class Greater(Token):
-    
     def __init__(self):
         super().__init__()
-        self.expr = r''
-        self.args = []
+        self.expr = r">"
 
     def __str__(self) -> str:
-        return "Greater"    
+        return "GREATER"
 
 
 class GreaterOrEqual(Token):
-    
     def __init__(self):
         super().__init__()
-        self.expr = r''
-        self.args = []
+        self.expr = r">="
 
     def __str__(self) -> str:
-        return "GreaterOrEqual"
+        return "GREATEROFEQUAL"
 
 
 class Less(Token):
-    
     def __init__(self):
         super().__init__()
-        self.expr = r''
-        self.args = []
+        self.expr = r"<"
 
     def __str__(self) -> str:
-        return "Less" 
+        return "LESS"
 
 
 class LessOrEqual(Token):
-    
     def __init__(self):
         super().__init__()
-        self.expr = r''
-        self.args = []
+        self.expr = r"<="
 
     def __str__(self) -> str:
-        return "LessOrEqual"
+        return "LESSOREQUAL"
 
 
-class TokenType(Enum):
-    """All available TokenType's Regex maps"""
+class Increment(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = r"=\+"
 
-    # Values
-    VAR = r"([a-zA-Z])"
-    INT = r''
-    FLOAT = r''
-    STRING = r''
-    
-    # Functions
-    FUNC = r'^=\|'
-    IF = r''
-    GOTO = r''
+    def __str__(self) -> str:
+        return "INCREMENT"
 
-    # Comparisons
-    EQUAL = r''
-    GEATER = r''
-    GEATER_OR_EQUAL = r''
-    LESS = r''
-    LESS_OR_EQUAL = r''
 
-    # Operations
-    INCREMENT = r''
-    DECREMENT = r''
+class Decrement(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = r"=\-"
 
-    @classmethod
-    def items(cls):
-        return list(map(lambda c: c, cls))
+    def __str__(self) -> str:
+        return "DECREMENT"
 
-    # Token functions
-    # TOKEN_FUNCTIONS = [
-    #     Variable, Integer, Float, String,
-    #     Func, If, Goto,
-    #     Equal, Greater, GreaterOrEqual, Less, LessOrEqual,
-    # ]
+
+class Variable(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = r"^=:"
+
+    def __str__(self) -> str:
+        return "VARIABLE"
+
+
+class Func(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = r"=\|"
+
+    def __str__(self) -> str:
+        return "FUNCTION"
+
+
+class If(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = r"=\?"
+
+    def __str__(self) -> str:
+        return "IF"
+
+
+class Goto(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = r"=\]"
+
+    def __str__(self) -> str:
+        return "GOTO"
+
+
+class Return(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = r"=\>"
+
+    def __str__(self) -> str:
+        return "RETURN"
+
+
+class ParOpen(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = r"^\("
+
+    def __str__(self) -> str:
+        return "PARENTHESIS OPEN"
+
+
+class ParClose(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = r"^\)"
+
+    def __str__(self) -> str:
+        return "PARENTHESIS CLOSE"
+
+
+class Tab(Token):
+
+    def __init__(self):
+        super().__init__()
+        self.expr = r"^[ \t]+"
+
+    def __repr__(self) -> str:
+        return "TAB"
+
+    def __str__(self) -> str:
+        return "TAB"
+
+
+class Undefined(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = r""
+
+    def __str__(self) -> str:
+        return "UNDEFINED"
+
+
+class TokenTypes(Enum):
+
+    DATA_TYPES = [
+        Integer,
+        Float,
+        String,
+    ]
+
+    COMPARISONS = [
+        Equal,
+        Greater,
+        GreaterOrEqual,
+        Less,
+        LessOrEqual,
+    ]
+
+    OPERATIONS = [
+        Variable,
+        Func,
+        If,
+        Goto,
+        Return,
+        Increment,
+        Decrement,
+        ParOpen,
+        ParClose,
+        Undefined,
+    ]
