@@ -81,22 +81,22 @@ class LessOrEqual(Token):
         return "LESSOREQUAL"
 
 
-class Increment(Token):
+class Add(Token):
     def __init__(self):
         super().__init__()
         self.expr = r"=\+"
 
     def __str__(self) -> str:
-        return "INCREMENT"
+        return "ADD"
 
 
-class Decrement(Token):
+class Substract(Token):
     def __init__(self):
         super().__init__()
         self.expr = r"=\-"
 
     def __str__(self) -> str:
-        return "DECREMENT"
+        return "SUBSTRACT"
 
 
 class Variable(Token):
@@ -206,8 +206,8 @@ class TokenTypes(Enum):
         If,
         Goto,
         Return,
-        Increment,
-        Decrement,
+        Add,
+        Substract,
         ParOpen,
         ParClose,
         Undefined,

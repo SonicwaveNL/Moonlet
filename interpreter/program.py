@@ -53,5 +53,9 @@ class Program:
             print('\nBREAK\n==============')
 
         else:
+            # {
+            #     'line': self.parser.line,
+            #     'errors': self.
+            # }
             print(self.parser)
             print('\nDONE!\n==============')
