@@ -34,15 +34,15 @@ class Parser:
         self.tokens = None
 
     def __str__(self):
-        return "\nParser(\n\tline: {}\n\tfunction: {}\n\tvars: {}\n\tinstructions: {}\n)".format(self.line, self.function, self.variables, self.instructions)
+        return f"\nParser(\n\tline: {self.line}\n\tfunction: {self.function}\n\tvars: {self.variables}\n\tinstructions: {self.instructions}\n)"
 
     # REMOVE THIS - Dev function
     def line_follower(self, instruction, args):
 
-        print('{}) >> {}'.format(self.line, instruction[1]), end=' ')
+        print(f'{self.line}) >> {instruction[1]}', end=' ')
 
         for arg in args:
-            print('{} '.format(arg[1]), end='')
+            print(f'{arg[1]} ', end='')
 
         print('')
 
@@ -73,7 +73,7 @@ class Parser:
                 return False, self.line, self.errors + [message]
 
         else:
-            return False, self.line, self.errors + ['Invalid operation at line {}'.format(self.line + 1)]
+            return False, self.line, self.errors + [f'Invalid operation at line {self.line + 1}']
 
     def parse_line(self, instruction, args):
 
@@ -81,7 +81,7 @@ class Parser:
 
             # Define the place where the result needs to be stored
             if instruction[0][0] == Tokens.Tab and not self.function:
-                return False, "Indented Token at line {} is not a member of any function"
+                return False, "Indented Token at line '{}' is not a member of any function"
             
             elif not self.function:
                 return False, "Trying to access a function that doesn't exist?"
@@ -212,6 +212,8 @@ class Parser:
 
     def match_type(self, input, token):
 
+        print(f'=>>>>>>>>>>>>>> INPUT: "{input}", TOKEN: "{token}"')
+
         # If the input value is stored within a tuple,
         # then access the value within that tuple
         if len(input) == 2 and isinstance(input, tuple):
@@ -238,7 +240,7 @@ class Parser:
 
         # Check if the function with name already exist
         if func_name in self.instructions:
-            return False, "Couldn't create function, function '{}' already exist".format(func_name)
+            return False, f"Couldn't create function, function '{func_name}' already exist"
 
         else:
 
@@ -254,14 +256,13 @@ class Parser:
                     return False, params
 
                 elif not params:
-                    return False, "Invalid parameters definition for '{}' function, couldn't process format".format(func_name)
+                    return False, f"Invalid parameters definition for '{func_name}' function, couldn't process format"
 
                 elif not is_opened:
-                    return False, "No '(' Open parentheses found for function with name '{}'".format(func_name)
+                    return False, f"No '(' Open parentheses found for function with name '{func_name}'"
 
                 elif not is_closed:
-                    return False, "No ')' Closing parentheses found for function with name '{}'".format(func_name)
-
+                    return False, f"No ')' Closing parentheses found for function with name '{func_name}'"
                 else:
                     self.function = func_name
                     self.instructions[func_name] = {'line': self.line, 'inline': [], 'params': params}
@@ -317,10 +318,10 @@ class Parser:
                 return self.create_parameters(args[1:], output, open_index, close_index)
                 
             else:
-                return "Can't define parameter '{}' for function more then ones".format(args[0][1]), open_index, close_index
+                return f"Can't define parameter '{args[0][1]}' for function more then ones", open_index, close_index
 
         else:
-            return "Token '{}' is disallowed to be used as a valid parameter".format(args[0][0]()), open_index, close_index
+            return f"Token '{args[0][0]()}' is disallowed to be used as a valid parameter", open_index, close_index
 
     def run_function(self, inline_instructions):
 
@@ -364,7 +365,7 @@ class Parser:
             expression = args[1][0]
 
         else:
-            return False, "Couldn't check if statement, expression '{}' is an invalid Token".format(args[1][1])
+            return False, f"Couldn't check if statement, expression '{args[1][1]}' is an invalid Token"
 
         # Define the right side of the if statement
         right = self.get_variable(args[2], place)
@@ -377,7 +378,7 @@ class Parser:
         
         # Check if a valid action is given
         if args[3][0] != Tokens.Variable and args[3][0] != Tokens.Goto:
-            return False, "Couldn't check if statement, action of statement '{}' is an invalid Token".format(args[3][1])
+            return False, f"Couldn't check if statement, action of statement '{args[3][1]}' is an invalid Token"
 
         # Run the statement
         result = self.run_if_statement(left['value'], expression, right['value'])
@@ -429,7 +430,7 @@ class Parser:
 
         # Check if the function exist within the current state
         elif args[0][1] not in self.instructions:
-            return False, "Couldn't goto function, function '{}' doesn't exist".format(args[0][1])
+            return False, f"Couldn't goto function, function '{args[0][1]}' doesn't exist"
 
         # Perform the Goto function, and reset the vars of that function
         function_instructions = self.instructions[args[0][1]]['inline']
@@ -460,17 +461,17 @@ class Parser:
                     result, message = self.set_variable((args[params_amount + 1], output), place)
                     
                     if result:
-                        return result, "Performed function call, and stored the result in {}".format(self.function)
+                        return result, f"Performed function call, and stored the result in {self.function}"
 
                     else:
-                        return result, "Couldn't set variable as result of function, cause of: '{}'".format(message)
+                        return result, f"Couldn't set variable as result of function, cause of: '{message}'"
 
                 else:
                     token = args[params_amount + 1][0]
-                    return False, "Calling the '{}' function gives back a return value, but token '{}' can't be used to store that value".format(self.function, token())
+                    return False, f"Calling the '{self.function}' function gives back a return value, but token '{token()}' can't be used to store that value"
 
             else:
-                return False, "Calling the '{}' function gives back a return value, but no followup action is defined to handle the result".format(self.function)
+                return False, f"Calling the '{self.function}' function gives back a return value, but no followup action is defined to handle the result"
 
         # If the function is completed, but the function returns no result
         elif result and not output:
@@ -490,6 +491,8 @@ class Parser:
 
     def add_value(self, args, place=None):
 
+        print(f'\n=====>> ADD VALUE - ARGS:{args}')
+
         # Check if the input args has enough values
         # to update the variable with the added value
         if len(args) < 2:
@@ -497,28 +500,23 @@ class Parser:
 
         # Check if the designated variable can be found
         if not self.check_variable(args[0][1], place):
-            return False, "Couldn't add Value to variable, variable '{}' is unknown".format(args[0][1])
+            return False, f"Couldn't add Value to variable, variable '{args[0][1]}' is unknown"
 
         # Check if the value is a pointer to a variable and
         # use that variabel if found, otherwise use the value on it own
         value = self.get_variable(args[1], place)
-        
+
         if not value:
             return False, "Couldn't add Value to variable, invalid variable retrieval"
 
         # Check and select the way to access the 'type' and 'value' before checking
-        if 'value' in value:
-            value_type = value['type']
-            value_value = value['value']
-
-        else:
-            value_type = value[0]
-            value_value = value[1]
+        value_type = value['type'] if 'type' in value else value[0]
+        value_value = value['value'] if 'value' in value else value[1]
 
         # Check if the value that needs to be added to the designated
         # variable has the same type as the designated variable
-        if not self.match_type(args[0][0], value_type):
-            return False, "Couldn't add Value to variable, can't add '{}' to '{}'".format(value_type(), args[0][0]())
+        if not self.match_type(args[0], value_type):
+            return False, f"Couldn't add Value to variable, can't add '{args[0][0]()}' to '{value_type()}'"
 
         else:
 
@@ -530,10 +528,10 @@ class Parser:
 
             # Check if the variable is correctly updated with the new value
             if result:
-                return True, "Added '{}' to '{}'".format(value_value, args[0][0])
+                return True, f"Added '{value_value}' to '{args[0][0]}'"
 
             else:
-                return False, "Couldn't add Value to variable, because of: {}".format(message)
+                return False, f"Couldn't add Value to variable, because of: {message}"
 
     def substract_value(self, args, place=None):
 
@@ -544,7 +542,7 @@ class Parser:
 
         # Check if the designated variable can be found
         if not self.check_variable(args[0][1], place):
-            return False, "Couldn't substract Value from variable, variable '{}' is unknown".format(args[0][1])
+            return False, f"Couldn't substract Value from variable, variable '{args[0][1]}' is unknown"
 
         # Check if the value is a pointer to a variable and
         # use that variabel if found, otherwise use the value on it own
@@ -570,7 +568,7 @@ class Parser:
         # Check if the value that needs to be added to the designated
         # variable has the same type as the designated variable
         if not self.match_type(args[0][0], value_type):
-            return False, "Couldn't substract Value from variable, can't substract '{}' from '{}'".format(value_type(), args[0][0]())
+            return False, f"Couldn't substract Value from variable, can't substract '{value_type()}' from '{args[0][0]()}'"
 
         else:
             # Perform 'substract' action to create the new value
@@ -581,15 +579,15 @@ class Parser:
 
             # Check if the variable is correctly updated with the new value
             if result:
-                return True, "Substracted '{}' from '{}'".format(value_value, args[0][0])
+                return True, f"Substracted '{value_value}' from '{args[0][0]}'"
 
             else:
-                return False, "Couldn't substract Value from variable, because of: {}".format(message)
+                return False, f"Couldn't substract Value from variable, because of: {message}"
 
     def undefined(self, args, place=None):
 
         if place:
-            return False, "Token within function '{}' is Undefined".format(self.function)
+            return False, "Token within function '{self.function}' is Undefined"
 
         else:
             return False, "Token is Undefined"

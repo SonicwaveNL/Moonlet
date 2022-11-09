@@ -3,9 +3,31 @@ import re
 from functools import reduce
 from typing import List, Union, Tuple
 from pprint import pprint, pp
+from . import tokens
+# from .tokens import Tab, Token, TokenTypes, Undefined, Integer, Float, String
 
-from .tokens import Tab, Token, TokenTypes, Undefined
+def unwrapper(input, indentations=-1):
 
+    if isinstance(input,  list) or isinstance(input, tuple):
+        tabs = '\t' * indentations
+        print(f"{tabs}{input}")
+        unwrapper(input[0], indentations + 1)
+
+    else:
+        tabs = '\t' * indentations
+        print(f"{tabs}{input}")
+
+    # if isinstance(input, list) and len(input) != 0:
+        
+    #     unwrapper(input[0], indentations+1)
+
+    # elif isinstance(input, tuple):
+    #     unwrapper(input[0], indentations+1)
+    #     unwrapper(input[1], indentations+1)
+
+    # else:
+    #     tabs = '\s' * (indentations - 2)
+    #     print(f"{tabs}{input}")
 
 class Lexer:
     """Represents the Lexer of the Interpeter.
@@ -16,29 +38,91 @@ class Lexer:
 
     def __init__(self, file_input):
         self.input = file_input
-        self.token_data_types = TokenTypes.DATA_TYPES.value
-        self.token_operations = TokenTypes.OPERATIONS.value
-        self.token_comparisons = TokenTypes.COMPARISONS.value
+        self.token_data_types = tokens.TokenTypes.DATA_TYPES.value
+        self.token_operations = tokens.TokenTypes.OPERATIONS.value
+        self.token_comparisons = tokens.TokenTypes.COMPARISONS.value
 
     def __str__(self) -> str:
         return "Lexer()"
+
+    def new_convert_to_tokens(self, input):
+
+        if input is None:
+            return None
+        
+        elif len(input) == 1:
+            return (None, None)
+
+        arguments = self.new_match_arguments(
+            input,
+            self.token_data_types + self.token_comparisons + self.token_operations,
+        )
+
+        print(f"Arguments: {arguments}")
+
+        return (arguments[0], arguments[1:])
+
+    def new_match_arguments(self, args_input, tokens):
+
+        value = reduce(
+            lambda x, y: x if x[1] is not None else y,
+            map(lambda x: (x, self.new_match_token(args_input, x)), tokens),
+        )
+
+        return value
+
+    def new_match_token(self, str_input, operation) -> Union[str, None]:
+
+        if isinstance(operation, object):
+            operation = operation()
+            pattern = re.compile(operation.expr)
+            match = re.match(pattern, str_input)
+
+            if match is not None:
+                if len(operation.args) > 1:
+                    found_args = self.new_unwrap_args(match, operation.args) 
+                    return found_args
+
+                return self.match_data_type(str_input) if match is not None else None
+
+        return None
+
+    def new_unwrap_args(self, match, args, values={}):
+        
+        if len(args) == 0:
+            return values
+
+        elif len(args) == 1:
+            values[args[0]] = self.match_data_type(match.group(args[0])) if args[0] is not None else None
+            return values
+
+        else:
+            values[args[0]] = self.match_data_type(match.group(args[0])) if args[0] is not None else None
+            return self.new_unwrap_args(match, args[1:], values)
 
     def scan(self):
 
         print('\nLINES\n==============')
         file_lines = self.convert_to_lines(self.input)
-        file_lines = list(filter(None, file_lines))
+
+        # Remove empty newlines
+        # file_lines = list(filter(None, file_lines))
         pprint(file_lines)
 
-        print('\nMAPPED PARTS\n==============')
-        file_parts = list(map(self.convert_to_parts, file_lines))
-        pprint(file_parts)
+        # print('\nMAPPED PARTS\n==============')
+        # file_parts = list(map(self.convert_to_parts, file_lines))
+        # pprint(file_parts)
+
+        # print('\nTO TOKENS\n==============')
+        # file_tokens = list(map(self.convert_to_tokens, file_parts))
+        # pprint(file_tokens)
 
         print('\nTO TOKENS\n==============')
-        file_tokens = list(map(self.convert_to_tokens, file_parts))
-        pprint(file_tokens)
+        # file_tokens = list(map(self.convert_to_tokens, file_lines))
+        file_tokens = list(map(self.new_convert_to_tokens, file_lines))
+        # pprint(file_tokens)
 
-        return file_lines, file_parts, file_tokens
+        return file_lines, file_lines, file_tokens
 
     # convert_to_lines :: str -> [str]
     def convert_to_lines(self, str_input: str) -> List[str]:
@@ -119,26 +203,32 @@ class Lexer:
     def match_arguments(self, args_input, tokens) -> Union[list, None]:
 
         # Try to match the args with any token
+        # value = reduce(
+        #     lambda x, y: x if x[1] is not None else y,
+        #     map(lambda x: (x, self.match_token(args_input[0], x)), tokens),
+        # )
         value = reduce(
             lambda x, y: x if x[1] is not None else y,
-            map(lambda x: (x, self.match_token(args_input[0], x)), tokens),
+            map(lambda x: (x, self.match_token(args_input, x)), tokens),
         )
+
+        print(f'\t{value}')
 
         # If it's still undefined/unknown, try again as it might 
         # has an tab in front of the Token we're looking for.
-        if value[0] == Undefined and isinstance(args_input[0], str):
+        if value[0] == tokens.Undefined and isinstance(args_input[0], str):
     
             new_args = args_input[0].replace('\t', '')
             new_value = reduce(
                 lambda x, y: x if x[1] is not None else y,
                 map(
                     lambda x: (
-                        (Tab, x), self.match_token(new_args, x)
+                        (tokens.Tab, x), self.match_token(new_args, x)
                     ), tokens
                 ),
             )
 
-            if new_value[0][1] != Undefined:
+            if new_value[0][1] != tokens.Undefined:
                 value = new_value
 
         if len(args_input) == 1:
@@ -160,12 +250,12 @@ class Lexer:
     def match_data_type(self, str_input):
 
         try:
-            return int(str_input)
+            return int(str_input), tokens.Integer
 
         except ValueError:
 
             try:
-                return float(str_input)
+                return float(str_input), tokens.Float
 
             except ValueError:
-                return str_input
+                return str_input, tokens.String

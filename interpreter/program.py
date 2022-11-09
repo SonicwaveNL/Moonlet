@@ -47,9 +47,10 @@ class Program:
             error_line = self.lines[self.current_line - 1]
             self.errors = ",\n".join(self.errors)
 
-            print('\nMOONLET Program interupted - line {}, in file "{}"'.format(self.current_line, self.file_path))
-            print('  {}\nError: "{}"'.format(error_line.strip('\t'), self.errors))
-            print(self.parser)
+            print(f'\nMOONLET Program interupted - line {self.current_line}, in file "{self.file_path}"')
+            print(f'  {error_line}\nError: "{self.errors}"')
+            # print('  {}\nError: "{}"'.format(error_line.strip('\t'), self.errors))
+            print(f'{self.parser}')
             print('\nBREAK\n==============')
 
         else:
