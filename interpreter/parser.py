@@ -41,8 +41,9 @@ class Parser:
 
         print(f'{self.line}) >> {instruction}', end=' ')
 
-        for arg in args:
-            print(f'\n   {arg}: {arg}', end='')
+        if args is not None:
+            for arg in args:
+                print(f'\n    > {arg}: {arg}', end='')
 
         print('\n')
 
@@ -65,10 +66,10 @@ class Parser:
             # token, arguments, raw_line, line_number = tokens
 
             self.line += 1
-            success, message = self.parse_line(tokens[0][0], tokens[0][1])
+            success, message = self.parse_line(tokens[0], tokens[1])
 
             # REMOVE THIS - Dev function
-            self.line_follower(tokens[0][0], tokens[0][1])
+            self.line_follower(tokens[0], tokens[0][1])
 
             if success:
                 return self.parse(tokens[1:])

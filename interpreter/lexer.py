@@ -1,4 +1,5 @@
 import re
+import copy
 
 from functools import reduce
 from typing import List, Union, Tuple
@@ -6,16 +7,16 @@ from pprint import pprint, pp
 from . import tokens
 # from .tokens import Tab, Token, TokenTypes, Undefined, Integer, Float, String
 
-def unwrapper(input, indentations=-1):
+# def unwrapper(input, indentations=-1):
 
-    if isinstance(input,  list) or isinstance(input, tuple):
-        tabs = '\t' * indentations
-        print(f"{tabs}{input}")
-        unwrapper(input[0], indentations + 1)
+#     if isinstance(input,  list) or isinstance(input, tuple):
+#         tabs = '\t' * indentations
+#         print(f"{tabs}{input}")
+#         unwrapper(input[0], indentations + 1)
 
-    else:
-        tabs = '\t' * indentations
-        print(f"{tabs}{input}")
+#     else:
+#         tabs = '\t' * indentations
+#         print(f"{tabs}{input}")
 
     # if isinstance(input, list) and len(input) != 0:
         
@@ -61,10 +62,8 @@ class Lexer:
 
         self.line += 1
         print(f" LINE({self.line}):\t'{arg_input}'\n   TOKN:\t{match[0]}\n   ARGS:\t{match[1]}\n")
-        
+
         return (match[0], match[1], arg_input, self.line)
-        # return (match[0], match[1:], input, self.line)
-        # return {'token': arguments[0], 'args': arguments[1:], 'raw': input, 'line': self.line}
 
     def new_match_arguments(self, argument_input, tokens):
 
@@ -73,10 +72,7 @@ class Lexer:
             map(lambda x: (x, self.new_match_token(argument_input, x)), tokens),
         )
 
-        print(f'\n VALUE:\n   [0]:\t\t{value[0]}\n   [1]:\t\t{value[1]}\n')
-
         return value[0], value[1]
-        # return value
 
     def new_match_token(self, str_input, operation):
 
@@ -95,8 +91,6 @@ class Lexer:
         return None
 
     def new_unwrap_args(self, match, arguments, values={}):
-
-        print('-> match -> arguments')
         
         if len(arguments) == 0:
             return values
@@ -126,15 +120,10 @@ class Lexer:
         # file_tokens = list(map(self.convert_to_tokens, file_parts))
         # pprint(file_tokens)
 
-        # print(f'A:::::::\n   {self.new_convert_to_tokens(file_lines[0])}')
-        # print(f'B:::::::\n   {self.new_convert_to_tokens(file_lines[1])}')
-        # print(f'C:::::::\n   {self.new_convert_to_tokens(file_lines[2])}')
-        # print(f'D:::::::\n   {self.new_convert_to_tokens(file_lines[3])}')
-
         print('\nTO TOKENS\n==============')
+        file_tokens = self.scan_line(file_lines)
         # file_tokens = list(map(self.convert_to_tokens, file_lines))
         # file_tokens = list(map(self.new_convert_to_tokens, file_lines))
-        file_tokens = self.scan_line(file_lines)
 
         # print(f'FILE_TOKENS: ')
         # pprint(file_tokens)
@@ -142,16 +131,16 @@ class Lexer:
         return file_lines, file_lines, file_tokens
 
     def scan_line(self, lines):
-
-        # print(f'\n\n LINES:\t\t{lines}')
         
         if len(lines) == 0:
             return [None]
 
-        elif len(lines) == 1:
-            return [self.new_convert_to_tokens(lines[0])]
+        value = copy.deepcopy([self.new_convert_to_tokens(lines[0])])
+        
+        if len(lines) == 1:
+            return value
 
-        return [self.new_convert_to_tokens(lines[0])] + self.scan_line(lines[1:])
+        return value + self.scan_line(lines[1:])
 
     # convert_to_lines :: str -> [str]
     def convert_to_lines(self, str_input: str) -> List[str]:
