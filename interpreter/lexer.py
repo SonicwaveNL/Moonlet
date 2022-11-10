@@ -41,37 +41,44 @@ class Lexer:
         self.token_data_types = tokens.TokenTypes.DATA_TYPES.value
         self.token_operations = tokens.TokenTypes.OPERATIONS.value
         self.token_comparisons = tokens.TokenTypes.COMPARISONS.value
+        self.line = 0
 
     def __str__(self) -> str:
         return "Lexer()"
 
-    def new_convert_to_tokens(self, input):
+    def new_convert_to_tokens(self, arg_input):
 
-        if input is None:
+        if arg_input is None:
             return None
         
-        elif len(input) == 1:
+        elif len(arg_input) == 1:
             return (None, None)
 
-        arguments = self.new_match_arguments(
-            input,
+        match = self.new_match_arguments(
+            arg_input,
             self.token_data_types + self.token_comparisons + self.token_operations,
         )
 
-        print(f"Arguments: {arguments}")
+        self.line += 1
+        print(f" LINE({self.line}):\t'{arg_input}'\n   TOKN:\t{match[0]}\n   ARGS:\t{match[1]}\n")
+        
+        return (match[0], match[1], arg_input, self.line)
+        # return (match[0], match[1:], input, self.line)
+        # return {'token': arguments[0], 'args': arguments[1:], 'raw': input, 'line': self.line}
 
-        return (arguments[0], arguments[1:])
-
-    def new_match_arguments(self, args_input, tokens):
+    def new_match_arguments(self, argument_input, tokens):
 
         value = reduce(
             lambda x, y: x if x[1] is not None else y,
-            map(lambda x: (x, self.new_match_token(args_input, x)), tokens),
+            map(lambda x: (x, self.new_match_token(argument_input, x)), tokens),
         )
 
-        return value
+        print(f'\n VALUE:\n   [0]:\t\t{value[0]}\n   [1]:\t\t{value[1]}\n')
 
-    def new_match_token(self, str_input, operation) -> Union[str, None]:
+        return value[0], value[1]
+        # return value
+
+    def new_match_token(self, str_input, operation):
 
         if isinstance(operation, object):
             operation = operation()
@@ -80,25 +87,27 @@ class Lexer:
 
             if match is not None:
                 if len(operation.args) > 1:
-                    found_args = self.new_unwrap_args(match, operation.args) 
+                    found_args = self.new_unwrap_args(match, operation.args)
                     return found_args
 
                 return self.match_data_type(str_input) if match is not None else None
 
         return None
 
-    def new_unwrap_args(self, match, args, values={}):
+    def new_unwrap_args(self, match, arguments, values={}):
+
+        print('-> match -> arguments')
         
-        if len(args) == 0:
+        if len(arguments) == 0:
             return values
 
-        elif len(args) == 1:
-            values[args[0]] = self.match_data_type(match.group(args[0])) if args[0] is not None else None
+        elif len(arguments) == 1:
+            values[arguments[0]] = self.match_data_type(match.group(arguments[0])) if arguments[0] is not None else None
             return values
 
         else:
-            values[args[0]] = self.match_data_type(match.group(args[0])) if args[0] is not None else None
-            return self.new_unwrap_args(match, args[1:], values)
+            values[arguments[0]] = self.match_data_type(match.group(arguments[0])) if arguments[0] is not None else None
+            return self.new_unwrap_args(match, arguments[1:], values)
 
     def scan(self):
 
@@ -117,12 +126,32 @@ class Lexer:
         # file_tokens = list(map(self.convert_to_tokens, file_parts))
         # pprint(file_tokens)
 
+        # print(f'A:::::::\n   {self.new_convert_to_tokens(file_lines[0])}')
+        # print(f'B:::::::\n   {self.new_convert_to_tokens(file_lines[1])}')
+        # print(f'C:::::::\n   {self.new_convert_to_tokens(file_lines[2])}')
+        # print(f'D:::::::\n   {self.new_convert_to_tokens(file_lines[3])}')
+
         print('\nTO TOKENS\n==============')
         # file_tokens = list(map(self.convert_to_tokens, file_lines))
-        file_tokens = list(map(self.new_convert_to_tokens, file_lines))
+        # file_tokens = list(map(self.new_convert_to_tokens, file_lines))
+        file_tokens = self.scan_line(file_lines)
+
+        # print(f'FILE_TOKENS: ')
         # pprint(file_tokens)
 
         return file_lines, file_lines, file_tokens
+
+    def scan_line(self, lines):
+
+        # print(f'\n\n LINES:\t\t{lines}')
+        
+        if len(lines) == 0:
+            return [None]
+
+        elif len(lines) == 1:
+            return [self.new_convert_to_tokens(lines[0])]
+
+        return [self.new_convert_to_tokens(lines[0])] + self.scan_line(lines[1:])
 
     # convert_to_lines :: str -> [str]
     def convert_to_lines(self, str_input: str) -> List[str]:

@@ -39,14 +39,16 @@ class Parser:
     # REMOVE THIS - Dev function
     def line_follower(self, instruction, args):
 
-        print(f'{self.line}) >> {instruction[1]}', end=' ')
+        print(f'{self.line}) >> {instruction}', end=' ')
 
         for arg in args:
-            print(f'{arg[1]} ', end='')
+            print(f'\n   {arg}: {arg}', end='')
 
-        print('')
+        print('\n')
 
     def parse(self, tokens):
+        # print(f'PARSE_TOKENS:\n', end=' ')
+        # pprint(tokens)
 
         # Save a copy of the tokens for function/line jumps
         if not self.tokens:
@@ -58,7 +60,9 @@ class Parser:
 
         # Check if the parsing has enough information
         # to conintue with the parsing
-        elif len(tokens[0]) == 2:
+        elif len(tokens) > 1:
+
+            # token, arguments, raw_line, line_number = tokens
 
             self.line += 1
             success, message = self.parse_line(tokens[0][0], tokens[0][1])
@@ -77,10 +81,10 @@ class Parser:
 
     def parse_line(self, instruction, args):
 
-        if isinstance(instruction[0], tuple):
+        if isinstance(instruction, tuple):
 
             # Define the place where the result needs to be stored
-            if instruction[0][0] == Tokens.Tab and not self.function:
+            if instruction[0] == Tokens.Tab and not self.function:
                 return False, "Indented Token at line '{}' is not a member of any function"
             
             elif not self.function:
@@ -91,25 +95,28 @@ class Parser:
                 place['inline'] += [(instruction, args)]
 
             # Try to match the right Token
-            if instruction[0][0] == Tokens.Tab and instruction[0][1] == Tokens.Variable:
+            if instruction[0] == Tokens.Tab and instruction[1] == Tokens.Variable:
                 return self.set_variable(args, place=place)
 
-            elif instruction[0][0] == Tokens.Tab and instruction[0][1] == Tokens.If:
+            elif instruction[0] == Tokens.Tab and instruction[1] == Tokens.If:
                 return self.check_if_statement(args, place=place)
 
-            elif instruction[0][0] == Tokens.Tab and instruction[0][1] == Tokens.Goto:
+            elif instruction[0] == Tokens.Tab and instruction[1] == Tokens.Goto:
                 return self.goto_function(args, place=place)
 
-            elif instruction[0][0] == Tokens.Tab and instruction[0][1] == Tokens.Return:
+            elif instruction[0] == Tokens.Tab and instruction[1] == Tokens.Return:
                 return self.return_function(args, place=place)
 
-            elif instruction[0][0] == Tokens.Tab and instruction[0][1] == Tokens.Add:
+            elif instruction[0] == Tokens.Tab and instruction[1] == Tokens.Add:
                 return self.add_value(args, place=place)
 
-            elif instruction[0][0] == Tokens.Tab and instruction[0][1] == Tokens.Substract:
+            elif instruction[0] == Tokens.Tab and instruction[1] == Tokens.Substract:
                 return self.substract_value(args, place=place)
 
-            elif instruction[0][0] == Tokens.Tab and instruction[0][1] == Tokens.Undefined:
+            elif instruction[0] == Tokens.Tab and instruction[1] == Tokens.EmptyLine:
+                return True, "Skipping emptyline"
+
+            elif instruction[0] == Tokens.Tab and instruction[1] == Tokens.Undefined:
                 return self.undefined(args, place=place)
 
         else:
@@ -118,25 +125,28 @@ class Parser:
             # then function var back
             self.function = None
 
-            if instruction[0] == Tokens.Variable:
+            if instruction == Tokens.Variable:
                 return self.set_variable(args)
 
-            elif instruction[0] == Tokens.Func:
+            elif instruction == Tokens.Func:
                 return self.create_function(args)
 
-            elif instruction[0] == Tokens.If:
+            elif instruction == Tokens.If:
                 return self.check_if_statement(args)
 
-            elif instruction[0] == Tokens.Goto:
+            elif instruction == Tokens.Goto:
                 return self.goto_function(args)
 
-            elif instruction[0] == Tokens.Add:
+            elif instruction == Tokens.Add:
                 return self.add_value(args)
 
-            elif instruction[0] == Tokens.Substract:
+            elif instruction == Tokens.Substract:
                 return self.substract_value(args)
 
-            elif instruction[0] == Tokens.Undefined:
+            elif instruction == Tokens.EmptyLine:
+                return True, "Skipping emptyline"
+
+            elif instruction == Tokens.Undefined:
                 return self.undefined(args)
 
         return False, "Unknown Token at line {}".format(self.line)
@@ -149,9 +159,12 @@ class Parser:
             return False, "Couldn't set Variable, invalid size"
 
         # Set the name, the type and the value of the var
-        var_name = str(args[0][1])
-        var_type = args[1][0]
-        var_value = args[1][1]
+        # var_name = str(args[0][1])
+        # var_type = args[1][0]
+        # var_value = args[1][1]
+        var_name = args['name'][0]
+        var_value = args['value'][0]
+        var_type = args['value'][1]
 
         # If a place was given (when witthin a function),
         # use that place to store the vars to prevent

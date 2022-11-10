@@ -111,7 +111,9 @@ class Func(Token):
 
     def __init__(self):
         super().__init__()
-        self.expr = "=\|"
+        # self.expr = "=\|"
+        # self.expr = f"\=\|\s+(?P<name>{String().expr})\s+\(\s*(?P<params>[\w|\,\s*]+)\)\s+\=\:\s+(?P<destination>{String().expr})"
+        self.expr = f"\=\|\s+(?P<name>{String().expr})\s+\(\s*(?P<params>[\w|\,\s*]+)\)"
         self.args = ['name', 'params']
 
     def __str__(self) -> str:
@@ -172,6 +174,14 @@ class Tab(Token):
     def __str__(self) -> str:
         return "TAB"
 
+class EmptyLine(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = "\n\s*\n|^\s*"
+
+    def __str__(self) -> str:
+        return "EMPTYLINE"
+
 class Undefined(Token):
     def __init__(self):
         super().__init__()
@@ -207,5 +217,6 @@ class TokenTypes(Enum):
         Substract,
         ParOpen,
         ParClose,
+        EmptyLine,
         Undefined,
     ]
