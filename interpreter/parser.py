@@ -1,8 +1,8 @@
+import copy
 from enum import Enum
 from functools import reduce
 from pprint import pprint
 from typing import List, Union, Tuple
-
 from . import tokens as Tokens
 
 
@@ -34,7 +34,7 @@ class Parser:
         self.tokens = None
 
     def __str__(self):
-        return f"\nParser(\n\tline: {self.line}\n\tfunction: {self.function}\n\tvars: {self.variables}\n\tinstructions: {self.instructions}\n)"
+        return f"\nParser(\n  line: {self.line}\n  function: {self.function}\n  vars: {self.variables}\n  instructions: {self.instructions}\n)"
 
     # REMOVE THIS - Dev function
     def line_follower(self, instruction, args):
@@ -61,15 +61,15 @@ class Parser:
 
         # Check if the parsing has enough information
         # to conintue with the parsing
-        elif len(tokens) > 1:
-
+        elif len(tokens) >= 1:
             # token, arguments, raw_line, line_number = tokens
+            # print(f'TOKENS: {tokens}')
 
             self.line += 1
-            success, message = self.parse_line(tokens[0], tokens[1])
+            success, message = self.parse_line(tokens[0][0], tokens[0][1], tokens[0][2], tokens[0][3])
 
             # REMOVE THIS - Dev function
-            self.line_follower(tokens[0], tokens[0][1])
+            # self.line_follower(tokens[0], tokens[0][1])
 
             if success:
                 return self.parse(tokens[1:])
@@ -80,7 +80,9 @@ class Parser:
         else:
             return False, self.line, self.errors + [f'Invalid operation at line {self.line + 1}']
 
-    def parse_line(self, instruction, args):
+    def parse_line(self, instruction, args, raw, number):
+
+        print(f"\n LINE({self.line}:{number}):\t'{raw}'\n   INST:\t{instruction}\n   ARGS:\t{args}")
 
         if isinstance(instruction, tuple):
 
@@ -130,7 +132,7 @@ class Parser:
                 return self.set_variable(args)
 
             elif instruction == Tokens.Func:
-                return self.create_function(args)
+                return self.create_function(args, raw)
 
             elif instruction == Tokens.If:
                 return self.check_if_statement(args)
@@ -144,6 +146,9 @@ class Parser:
             elif instruction == Tokens.Substract:
                 return self.substract_value(args)
 
+            elif instruction == Tokens.BracketClose:
+                return self.close_function(args)
+
             elif instruction == Tokens.EmptyLine:
                 return True, "Skipping emptyline"
 
@@ -153,6 +158,12 @@ class Parser:
         return False, "Unknown Token at line {}".format(self.line)
 
     def set_variable(self, args, place=None):
+
+        if place is not None:
+            print(f"  SET_VAR:\n   ARGS:\t{args}\n   PLACE:\t{place.get('name', None)}")
+        else:
+            print(f"  SET_VAR:\n   ARGS:\t{args}\n   PLACE:\tNone")
+
 
         # Check if the input args has enough values
         # to set a name and a value for the var
@@ -170,7 +181,7 @@ class Parser:
         # If a place was given (when witthin a function),
         # use that place to store the vars to prevent
         # global vars from beeing overrided.
-        if place and isinstance(place, dict):
+        if place is not None and isinstance(place, dict):
 
             new_var = {var_name: {'type': var_type, 'value': var_value}}
 
@@ -187,20 +198,25 @@ class Parser:
 
     def get_variable(self, args, place=None):
 
+        if place is not None:
+            print(f"  GET_VAR:\n   ARGS:\t{args}\n   PLACE:\t{place.get('name', None)}")
+        else:
+            print(f"  GET_VAR:\n   ARGS:\t{args}\n   PLACE:\tNone")
+
         # Check if the input args has enough values
         # to do a variable lookup.
-        if len(args) < 2:
-            return None
+        # if len(args) < 2:
+        if args is not None:
 
-        # If a place is given, try to retrieve 
-        # the value from that place.
-        if place and str(args[1]) in place['vars']:
-            return place['vars'][str(args[1])]
-        
-        # Elif try to retrieve the value from
-        # the global variables
-        elif str(args[1]) in self.variables:
-            return self.variables[args[1]]
+            # If a place is given, try to retrieve 
+            # the value from that place.
+            if place is not None and args in place['vars']:
+                return place['vars'][args]
+            
+            # Elif try to retrieve the value from
+            # the global variables
+            elif args in self.variables:
+                return self.variables[args]
 
         return args
 
@@ -208,7 +224,7 @@ class Parser:
 
         # Check if the input args is a packed value,
         # if it is a packed value, unpack it for the check
-        if len(args) == 2 and isinstance(args, tuple):
+        if isinstance(args, tuple):
             value = args[0]
 
         else:
@@ -216,7 +232,7 @@ class Parser:
 
         # If a place is given, check if the variable
         # can be found within that place
-        if place and value in place['vars']:
+        if place is not None and value in place['vars']:
             return True, "Variable exist"
             
         elif value in self.variables:
@@ -226,66 +242,96 @@ class Parser:
 
     def match_type(self, input, token):
 
-        print(f'=>>>>>>>>>>>>>> INPUT: "{input}", TOKEN: "{token}"')
+        print(f"  MATCH:\t{input} ? {token}")
 
         # If the input value is stored within a tuple,
         # then access the value within that tuple
-        if len(input) == 2 and isinstance(input, tuple):
+        if isinstance(input, tuple):
             if input[0] == token:
                 return True
 
         # If the input is straight up the token that
         # needs to be checked, then use the input directly
-        elif len(input) == 1:
-            if input == token:
-                return True
+        if input == token:
+            return True
 
         return False
 
-    def create_function(self, args):
+    def create_function(self, args, raw):
 
         # Check if the input args has enough values
         # to set a name for the function
-        if len(args[0]) < 2:
+        if 'name' not in args:
             return False, "Couldn't create function, invalid 'name' given"
 
         # Get the name of the function
-        func_name = args[0][1]
+        func_name = args['name']
 
         # Check if the function with name already exist
         if func_name in self.instructions:
             return False, f"Couldn't create function, function '{func_name}' already exist"
 
         else:
+            self.function = func_name
+            success, value = self.new_create_params(args['params'])
 
-            # Check if the args include enough values to start
-            # checking for open/closing parentheses
-            if len(args) >= 5:
-
-                # Try to create the parameters, and validate
-                # if the args include both valid open/closing parentheses
-                params, is_opened, is_closed = self.create_parameters(args[1:])
-
-                if isinstance(params, str):
-                    return False, params
-
-                elif not params:
-                    return False, f"Invalid parameters definition for '{func_name}' function, couldn't process format"
-
-                elif not is_opened:
-                    return False, f"No '(' Open parentheses found for function with name '{func_name}'"
-
-                elif not is_closed:
-                    return False, f"No ')' Closing parentheses found for function with name '{func_name}'"
-                else:
-                    self.function = func_name
-                    self.instructions[func_name] = {'line': self.line, 'inline': [], 'params': params}
+            if success:
+                self.instructions[func_name] = {'line': self.line, 'inline': [], 'params': args['params'], 'vars': value, 'raw': raw}
 
             else:
-                self.function = func_name
-                self.instructions[func_name] = {'line': self.line, 'inline': []}
+                False, value
+
+            # # Check if the args include enough values to start
+            # # checking for open/closing parentheses
+            # if len(args) >= 5:
+
+            #     # Try to create the parameters, and validate
+            #     # if the args include both valid open/closing parentheses
+            #     params, is_opened, is_closed = self.create_parameters(args[1:])
+
+            #     if isinstance(params, str):
+            #         return False, params
+
+            #     elif not params:
+            #         return False, f"Invalid parameters definition for '{func_name}' function, couldn't process format"
+
+            #     elif not is_opened:
+            #         return False, f"No '(' Open parentheses found for function with name '{func_name}'"
+
+            #     elif not is_closed:
+            #         return False, f"No ')' Closing parentheses found for function with name '{func_name}'"
+            #     else:
+            #         self.function = func_name
+            #         self.instructions[func_name] = {'line': self.line, 'inline': [], 'params': params}
+
+            # else:
+            #     self.function = func_name
+            #     self.instructions[func_name] = {'line': self.line, 'inline': []}
 
         return True, "Function created"
+
+    def new_create_params(self, args, reference=None):
+
+        if len(args) == 0:
+            return False, "Couldn't create params with '0' arguments given"
+
+        if reference is not None:
+            if len(args) == len(reference):
+                found_value = self.variables[reference[0]]
+                params = {args[0]: found_value}
+                
+                if len(args) == 1 and len(reference) == 1:
+                    return True, params
+                else:
+                    return True, {**params, **self.new_create_params(args[1:], reference[1:])[1]}
+
+            return False, f"Couldn't create params: '{len(args)}' args, were '{len(reference)}' is given"
+
+        if len(args) == 1:
+            # return copy.deepcopy({args[0]: {}})
+            return True, {args[0]: None}
+
+        return True, {args[0]: None, **self.new_create_params(args[1:])[1]}
 
     def create_parameters(self, args, output=None, open_index=None, close_index=None):
         
@@ -337,16 +383,20 @@ class Parser:
         else:
             return f"Token '{args[0][0]()}' is disallowed to be used as a valid parameter", open_index, close_index
 
-    def run_function(self, inline_instructions):
+    def run_function(self, inline_instructions, raw, number):
+
+        # print(f' INLINE_INSTRUCTIONS: {inline_instructions}')
 
         # Execute the inline instructions, if there are
         # still inline instructions that needs to be executed
         if inline_instructions:
+
+            print(f"   RUN('{self.function}'):\t{inline_instructions[0]}")
             
-            success, message = self.parse_line(inline_instructions[0][0], inline_instructions[0][1])
+            success, message = self.parse_line(inline_instructions[0][0], inline_instructions[0][1], raw, number)
 
             if success:
-                return self.run_function(inline_instructions[1:])
+                return self.run_function(inline_instructions[1:], raw, number)
 
             else:
                 return False, message
@@ -439,86 +489,143 @@ class Parser:
     def goto_function(self, args, place=None):
 
         # Check if a valid function is given
-        if len(args) < 2:
+        if 'name' not in args:
             return False, "Couldn't goto function, function is unknown"
 
+        name = args['name']
+
         # Check if the function exist within the current state
-        elif args[0][1] not in self.instructions:
-            return False, f"Couldn't goto function, function '{args[0][1]}' doesn't exist"
+        if name not in self.instructions:
+            return False, f"Couldn't goto function, function '{name}' doesn't exist"
 
         # Perform the Goto function, and reset the vars of that function
-        function_instructions = self.instructions[args[0][1]]['inline']
-        self.function = args[0][1]
-        self.instructions[args[0][1]]['vars'] = {}
-        self.instructions[args[0][1]]['inline'] = []
-        result, output = self.run_function(function_instructions)
+        function_instructions = self.instructions[name]['inline']
+        self.function = name
+
+        # Try to create the parameters using
+        # the globally stored variable values
+        result, output = self.new_create_params(self.instructions[name]['params'], args['params'])
+
+        # If paramaters couldn't be created,
+        # then return the caused error message
+        if not result:
+            return False, output        
+        
+        self.instructions[name]['vars'] = output
+        self.instructions[name]['inline'] = []
+        print(f"  INST_VARS:\t{self.instructions[name]['vars']}")
+        # print(f"  INST_VARS {output}")
+        result, output = self.run_function(function_instructions, self.instructions[name]['raw'], self.instructions[name]['line'])
+
+        print(f' RESULT:\t{result}\n OUTPUT:\t{output}')
 
         # If the function result in a 'Return' action,
         # Then perform the followup action.
         if result and output:
+
+            if 'destination' in args:
+                return self.set_variable({'name': args['destination'], 'value': (output['value'], output['type'])}, place)
             
-            # Check if the function includes parameters,
-            # so we know where to check for the followup action
-            if 'params' in self.instructions[self.function]:
-                params_amount = self.instructions[self.function]['params']['amount'] + 3
+            # # Check if the function includes parameters,
+            # # so we know where to check for the followup action
+            # if 'params' in self.instructions[self.function]:
+            #     params_amount = self.instructions[self.function]['params']['amount'] + 3
 
-            else:
-                params_amount = 1
+            # else:
+            #     params_amount = 1
 
-            # Check if their are enough values to perform the followup action
-            if len(args) >= params_amount + 2:
+            # # Check if their are enough values to perform the followup action
+            # if len(args) >= params_amount + 2:
 
-                # Check if the followup action is to set a variable with the result of the function
-                if args[params_amount][0] == Tokens.Variable and args[params_amount + 1][0] == Tokens.String:
+            #     # Check if the followup action is to set a variable with the result of the function
+            #     if args[params_amount][0] == Tokens.Variable and args[params_amount + 1][0] == Tokens.String:
                     
-                    # Try to set the variable as the result of the function
-                    result, message = self.set_variable((args[params_amount + 1], output), place)
+            #         # Try to set the variable as the result of the function
+            #         result, message = self.set_variable((args[params_amount + 1], output), place)
                     
-                    if result:
-                        return result, f"Performed function call, and stored the result in {self.function}"
+            #         if result:
+            #             return result, f"Performed function call, and stored the result in {self.function}"
 
-                    else:
-                        return result, f"Couldn't set variable as result of function, cause of: '{message}'"
+            #         else:
+            #             return result, f"Couldn't set variable as result of function, cause of: '{message}'"
 
-                else:
-                    token = args[params_amount + 1][0]
-                    return False, f"Calling the '{self.function}' function gives back a return value, but token '{token()}' can't be used to store that value"
+            #     else:
+            #         token = args[params_amount + 1][0]
+            #         return False, f"Calling the '{self.function}' function gives back a return value, but token '{token()}' can't be used to store that value"
 
-            else:
-                return False, f"Calling the '{self.function}' function gives back a return value, but no followup action is defined to handle the result"
+            # else:
+            #     return False, f"Calling the '{self.function}' function gives back a return value, but no followup action is defined to handle the result"
 
         # If the function is completed, but the function returns no result
         elif result and not output:
-            return result, "Performed function call"
+            return result, f"Called function: '{name}'"
+
+        return False, f"Calling function '{name}' has caused an invalid operation"
 
     def return_function(self, args, place=None):
+
+        if place is not None:
+            print(f"  RTRN_FUNC:\n   ARGS:\t{args}\n   PLACE:\t{place.get('name', None)}")
+        else:
+            print(f"  RTRN_FUNC:\n   ARGS:\t{args}\n   PLACE:\tNone")
 
         if not place:
             return False, "Couldn't return a function value, invalid function definition"
 
-        elif len(args[0]) < 2:
+        elif 'name' not in args:
             return False, "Couldn't return a function value, the returned value is not defined"
 
-        place['return'] = self.get_variable(args[0], place)
+        place['return'] = self.get_variable(args['name'], place)
         
         return True, "Return for function defined"
 
     def add_value(self, args, place=None):
 
-        print(f'\n=====>> ADD VALUE - ARGS:{args}')
+        if 'lhs' not in args:
+            return False, "Couldn't add Value to variable, the 'lhs' is either not defined or invalid"
+
+        elif 'rhs' not in args:
+            return False, "Couldn't add Value to variable, the 'lhs' is either not defined or invalid"
+
+        lhs_value, lhs_type = args['lhs']
+        rhs_value, rhs_type = args['rhs']
+        print(f'  ADD_VALUE:\t{lhs_value} + {rhs_value}')
+        print(f'   LHS:\t\t{lhs_type}')
+        print(f'   RHS:\t\t{rhs_type}')
+
+        if lhs_type != Tokens.String:
+            return False, "Couldn't add Value to variable, '{lhs_value}' isn't a valid variable name"
 
         # Check if the input args has enough values
         # to update the variable with the added value
-        if len(args) < 2:
-            return False, "Couldn't add Value to variable, invalid size"
+        # if len(args) < 2:
+        #     return False, "Couldn't add Value to variable, invalid size"
 
         # Check if the designated variable can be found
-        if not self.check_variable(args[0][1], place):
-            return False, f"Couldn't add Value to variable, variable '{args[0][1]}' is unknown"
+        # if not self.check_variable(args[0][1], place):
+        lhs_found, _ = self.check_variable(lhs_value, place)
+        if not lhs_found:
+            return False, f"Couldn't add Value to variable, variable '{lhs_value}' is unknown"
+
+        # Check if the right-hand side is a variable as well,
+        # if so: try to validate the variable as well.
+        rhs_found, _ = self.check_variable(rhs_value, place)
+        if rhs_found:
+            rhs_loopup = self.get_variable(rhs_value, place)
+
+            if rhs_loopup is None and place is not None:
+                return True, "Skipping cause of function initiialization"
+
+            print(f"  RHS_LOOPUP:\t{rhs_loopup}")
+            rhs_type = rhs_loopup['type'] if 'type' in rhs_loopup else rhs_loopup[0]
+            rhs_value = rhs_loopup['value'] if 'value' in rhs_loopup else rhs_loopup[1]
 
         # Check if the value is a pointer to a variable and
         # use that variabel if found, otherwise use the value on it own
-        value = self.get_variable(args[1], place)
+        value = self.get_variable(lhs_value, place)
+
+        if value is None and place is not None:
+            return True, "Skipping cause of function initiialization"
 
         if not value:
             return False, "Couldn't add Value to variable, invalid variable retrieval"
@@ -527,76 +634,110 @@ class Parser:
         value_type = value['type'] if 'type' in value else value[0]
         value_value = value['value'] if 'value' in value else value[1]
 
+        print(f"   VAR:\t\t{value_value} - {value_type}")
+
         # Check if the value that needs to be added to the designated
         # variable has the same type as the designated variable
-        if not self.match_type(args[0], value_type):
-            return False, f"Couldn't add Value to variable, can't add '{args[0][0]()}' to '{value_type()}'"
+        if not self.match_type(rhs_type, value_type):
+            return False, f"Couldn't add Value to variable, can't add '{rhs_type()}' to '{value_type()}'"
 
         else:
 
             # Perform 'add' action to create the new value
-            new_value = args[0][0] + value_value
+            new_value = value_value + rhs_value
             
             # Store the result in the designated variable
-            result, message = self.set_variable((args[0], new_value), place)
+            # result, message = self.set_variable((args[0], new_value), place)
+            result, message = self.set_variable({'name': lhs_value, 'value': (new_value, value_type)}, place)
 
             # Check if the variable is correctly updated with the new value
             if result:
-                return True, f"Added '{value_value}' to '{args[0][0]}'"
+                return True, f"Added '{rhs_value}' to '{lhs_value}'"
 
             else:
                 return False, f"Couldn't add Value to variable, because of: {message}"
 
     def substract_value(self, args, place=None):
 
+        if 'lhs' not in args:
+            return False, "Couldn't substract Value to variable, the 'lhs' is either not defined or invalid"
+
+        elif 'rhs' not in args:
+            return False, "Couldn't substract Value to variable, the 'lhs' is either not defined or invalid"
+
+        lhs_value, lhs_type = args['lhs']
+        rhs_value, rhs_type = args['rhs']
+        print(f'  SUB_VALUE:\t{lhs_value} + {rhs_value}')
+        print(f'   LHS:\t\t{lhs_type}')
+        print(f'   RHS:\t\t{rhs_type}')
+
+        if lhs_type != Tokens.String:
+            return False, "Couldn't substract Value to variable, '{lhs_value}' isn't a valid variable name"
+
         # Check if the input args has enough values
-        # to update the variable with the added value
-        if len(args) < 2:
-            return False, "Couldn't substract Value from variable, invalid size"
+        # to update the variable with the substracted value
+        # if len(args) < 2:
+        #     return False, "Couldn't substract Value to variable, invalid size"
 
         # Check if the designated variable can be found
-        if not self.check_variable(args[0][1], place):
-            return False, f"Couldn't substract Value from variable, variable '{args[0][1]}' is unknown"
+        # if not self.check_variable(args[0][1], place):
+        lhs_found, _ = self.check_variable(lhs_value, place)
+        if not lhs_found:
+            return False, f"Couldn't substract Value from variable, variable '{lhs_value}' is unknown"
+
+        # Check if the right-hand side is a variable as well,
+        # if so: try to validate the variable as well.
+        rhs_found, _ = self.check_variable(rhs_value, place)
+        if rhs_found:
+            rhs_loopup = self.get_variable(rhs_value, place)
+
+            if rhs_loopup is None and place is not None:
+                return True, "Skipping cause of function initiialization"
+
+            print(f"  RHS_LOOPUP:\t{rhs_loopup}")
+            rhs_type = rhs_loopup['type'] if 'type' in rhs_loopup else rhs_loopup[0]
+            rhs_value = rhs_loopup['value'] if 'value' in rhs_loopup else rhs_loopup[1]
 
         # Check if the value is a pointer to a variable and
         # use that variabel if found, otherwise use the value on it own
-        value = self.get_variable(args[1], place)
-        
+        value = self.get_variable(lhs_value, place)
+
+        if value is None and place is not None:
+            return True, "Skipping cause of function initiialization"
+
         if not value:
             return False, "Couldn't substract Value from variable, invalid variable retrieval"
 
         # Check and select the way to access the 'type' and 'value' before checking
-        if 'value' in value:
-            value_type = value['type']
-            value_value = value['value']
+        value_type = value['type'] if 'type' in value else value[0]
+        value_value = value['value'] if 'value' in value else value[1]
 
-        else:
-            value_type = value[0]
-            value_value = value[1]
+        print(f"   VAR:\t\t{value_value} - {value_type}")
 
-        # Check if both values are not a 'Tokens.String',
-        # as we're not able to substract strings from eachother
-        if args[0][0] == Tokens.String or value_type == Tokens.String:
-            return False, "Couldn't substract Value from variable, it's disallowed to substract Strings"
-
-        # Check if the value that needs to be added to the designated
+        # Check if the value that needs to be substracted from the designated
         # variable has the same type as the designated variable
-        if not self.match_type(args[0][0], value_type):
-            return False, f"Couldn't substract Value from variable, can't substract '{value_type()}' from '{args[0][0]()}'"
+        if not self.match_type(rhs_type, value_type):
+            return False, f"Couldn't substract Value from variable, can't substract '{rhs_type()}' from '{value_type()}'"
 
         else:
-            # Perform 'substract' action to create the new value
-            new_value = args[0][0] - value_value
+
+            # Perform 'Substract' action to create the new value
+            new_value = value_value - rhs_value
             
             # Store the result in the designated variable
-            result, message = self.set_variable((args[0], new_value), place)
+            # result, message = self.set_variable((args[0], new_value), place)
+            result, message = self.set_variable({'name': lhs_value, 'value': (new_value, value_type)}, place)
 
             # Check if the variable is correctly updated with the new value
             if result:
-                return True, f"Substracted '{value_value}' from '{args[0][0]}'"
+                return True, f"Substracted '{rhs_value}' from '{lhs_value}'"
 
             else:
-                return False, f"Couldn't substract Value from variable, because of: {message}"
+                return False, f"Couldn't substract Value to variable, because of: {message}"
+
+    def close_function(self, args):
+        self.function = None
+        return True, "Closedup current function"
 
     def undefined(self, args, place=None):
 

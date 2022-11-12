@@ -33,10 +33,8 @@ class Program:
         # Init the Parser
         self.parser = Parser()
 
-
     def __str__(self):
         return "Program()"
-
 
     def run(self):
         

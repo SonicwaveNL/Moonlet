@@ -52,8 +52,8 @@ class Lexer:
         if arg_input is None:
             return None
         
-        elif len(arg_input) == 1:
-            return (None, None)
+        # elif len(arg_input) == 1:
+        #     return (None, None, None, None)
 
         match = self.new_match_arguments(
             arg_input,
@@ -65,12 +65,36 @@ class Lexer:
 
         return (match[0], match[1], arg_input, self.line)
 
-    def new_match_arguments(self, argument_input, tokens):
+    def new_match_arguments(self, args_input, tokens_input):
 
         value = reduce(
             lambda x, y: x if x[1] is not None else y,
-            map(lambda x: (x, self.new_match_token(argument_input, x)), tokens),
+            map(lambda x: (x, self.new_match_token(args_input, x)), tokens_input),
         )
+
+        # print(f' VALUE{value}')
+
+        # If it's still undefined/unknown, try again as it might 
+        # has an tab in front of the Token we're looking for.
+        if value[0] == tokens.Undefined:
+            new_args = args_input.lstrip(' ')
+            new_value = reduce(
+                lambda x, y: x if x[1] is not None else y,
+                map(lambda x: ((tokens.Tab, x), self.new_match_token(new_args, x)), tokens_input),
+            )
+
+            # If the token has been found, assign it as the value
+            # otherwise, try to check if it's just an 'EmptyLine'
+            if new_value[0][1] != tokens.Undefined:
+                value = new_value
+
+            else:
+                new_value = self.new_match_token(args_input, tokens.EmptyLine)
+                if new_value != tokens.Undefined:
+                    value = (tokens.EmptyLine, {})
+
+        if len(args_input) == 1:
+            return value[0], value[1]
 
         return value[0], value[1]
 
@@ -82,8 +106,8 @@ class Lexer:
             match = re.match(pattern, str_input)
 
             if match is not None:
-                if len(operation.args) > 1:
-                    found_args = self.new_unwrap_args(match, operation.args)
+                if len(operation.args) >= 1:
+                    found_args = self.new_unwrap_args(match, operation.args, {})
                     return found_args
 
                 return self.match_data_type(str_input) if match is not None else None
@@ -91,17 +115,23 @@ class Lexer:
         return None
 
     def new_unwrap_args(self, match, arguments, values={}):
-        
+
         if len(arguments) == 0:
             return values
 
-        elif len(arguments) == 1:
+        if arguments[0] == 'params':
+            values[arguments[0]] = match.group('params').replace(' ', '').split(',')
+
+        elif arguments[0] != 'name':
             values[arguments[0]] = self.match_data_type(match.group(arguments[0])) if arguments[0] is not None else None
-            return values
 
         else:
-            values[arguments[0]] = self.match_data_type(match.group(arguments[0])) if arguments[0] is not None else None
-            return self.new_unwrap_args(match, arguments[1:], values)
+            values[arguments[0]] = match.group('name') if arguments[0] is not None else None
+
+        if len(arguments) == 1:
+            return values
+
+        return self.new_unwrap_args(match, arguments[1:], values)
 
     def scan(self):
 

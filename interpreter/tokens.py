@@ -79,7 +79,7 @@ class Add(Token):
     def __init__(self):
         super().__init__()
         # self.expr = "=\+"
-        self.expr = f"\=\+\s+(?P<lhs>{String}+)\s+(?P<rhs>{Float}|{Integer}|{String})"
+        self.expr = f"\=\+\s+(?P<lhs>{String().expr})\s+(?P<rhs>{Float().expr}|{Integer().expr}|{String().expr})"
         self.args = ["lhs", "rhs"]
 
     def __str__(self) -> str:
@@ -89,7 +89,7 @@ class Substract(Token):
     def __init__(self):
         super().__init__()
         # self.expr = "=\-"
-        self.expr = f"\=\-\s+(?P<lhs>{String}+)\s+(?P<rhs>{Float}|{Integer}|{String})"
+        self.expr = f"\=\-\s+(?P<lhs>{String().expr})\s+(?P<rhs>{Float().expr}|{Integer().expr}|{String().expr})"
         self.args = ["lhs", "rhs"]
 
     def __str__(self) -> str:
@@ -113,7 +113,8 @@ class Func(Token):
         super().__init__()
         # self.expr = "=\|"
         # self.expr = f"\=\|\s+(?P<name>{String().expr})\s+\(\s*(?P<params>[\w|\,\s*]+)\)\s+\=\:\s+(?P<destination>{String().expr})"
-        self.expr = f"\=\|\s+(?P<name>{String().expr})\s+\(\s*(?P<params>[\w|\,\s*]+)\)"
+        # self.expr = "\=\|\s+(?P<name>[a-zA-Z]+)\s+\(\s*(?P<params>[\w|\,\s*]+)\)\s+\=\{(?P<content>[\t\=\+\-|\>|\<|\w|\,|\n|\s*]+)\}"
+        self.expr = "\=\|\s+(?P<name>[a-zA-Z]+)\s+\(\s*(?P<params>[\w|\,\s*]+)\)\s+\=\{"
         self.args = ['name', 'params']
 
     def __str__(self) -> str:
@@ -133,8 +134,9 @@ class Goto(Token):
     def __init__(self):
         super().__init__()
         # self.expr = "=\]"
-        self.expr = "\=\]\s+(?P<name>{String}+)"
-        self.args = ["name"]
+        # self.expr = "\=\]\s+(?P<name>{String}+)"
+        self.expr = f"\=\]\s+(?P<name>{String().expr})\s+\((?P<params>[\w|\,\s*]+)\)\s+[\=\:\s]*(?P<destination>{String().expr})*"
+        self.args = ["name", "params", "destination"]
 
     def __str__(self) -> str:
         return "GOTO {name}"
@@ -143,7 +145,7 @@ class Return(Token):
     def __init__(self):
         super().__init__()
         # self.expr = "\=\>"
-        self.expr = "\=\>\s+(?P<name>[a-zA-Z]+)"
+        self.expr = f"\=\>\s+(?P<name>{String().expr})"
         self.args = ["name"]
 
     def __str__(self) -> str:
@@ -165,6 +167,22 @@ class ParClose(Token):
     def __str__(self) -> str:
         return "PARENTHESISCLOSE"
 
+class BracketOpen(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = "\{"
+
+    def __str__(self) -> str:
+        return "BRACKETOPEN"
+
+class BracketClose(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = "\}"
+
+    def __str__(self) -> str:
+        return "BRACKETCLOSE"
+
 class Tab(Token):
 
     def __init__(self):
@@ -177,7 +195,13 @@ class Tab(Token):
 class EmptyLine(Token):
     def __init__(self):
         super().__init__()
-        self.expr = "\n\s*\n|^\s*"
+        self.expr = "^\n{1}\s*\n*"
+        # self.expr = "^\}\n"
+        # self.expr = "\n\s*\n|^\s*"
+        # self.expr = "\n\s+\n|^\s+"
+        # self.expr = "\n\s*\n"
+        # self.expr = "^\s{1}\n*"
+        # self.expr = "\n\s*\n|^\s*"
 
     def __str__(self) -> str:
         return "EMPTYLINE"
@@ -217,6 +241,7 @@ class TokenTypes(Enum):
         Substract,
         ParOpen,
         ParClose,
-        EmptyLine,
+        BracketOpen,
+        BracketClose,
         Undefined,
     ]
