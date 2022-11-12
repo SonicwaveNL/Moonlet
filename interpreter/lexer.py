@@ -122,6 +122,15 @@ class Lexer:
         if arguments[0] == 'params':
             values[arguments[0]] = match.group('params').replace(' ', '').split(',')
 
+        elif arguments[0] == 'action':
+            print('TAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAAA')
+            output = self.new_convert_to_tokens(match.group('action'))
+            print(f'OUTPUT:{output}')
+            values['action'] = output
+
+        # elif arguments[0] != 'operation':
+            # values['operation'] = 
+
         elif arguments[0] != 'name':
             values[arguments[0]] = self.match_data_type(match.group(arguments[0])) if arguments[0] is not None else None
 
@@ -297,13 +306,17 @@ class Lexer:
 
     def match_data_type(self, str_input):
 
+        print(f"  TRY_MATCH:\t{str_input}")
+
         try:
             return int(str_input), tokens.Integer
 
         except ValueError:
-
             try:
                 return float(str_input), tokens.Float
 
             except ValueError:
+                if 'true' in str_input or 'false' in str_input:
+                    return str_input, tokens.Boolean
+
                 return str_input, tokens.String

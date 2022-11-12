@@ -28,16 +28,32 @@ class Float(Token):
 class String(Token):
     def __init__(self):
         super().__init__()
-        self.expr = "[a-zA-Z]+"
+        self.expr = "[a-zA-Z|\_]+"
 
     def __str__(self) -> str:
         return "STRING"
+
+class Boolean(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = "true|false"
+
+    def __str__(self) -> str:
+        return "BOOLEAN"
+
+class DataTypes(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = f"{Integer().expr}|{Float().expr}|{String().expr}|{Boolean().expr}"
+    
+    def __str__(self) -> str:
+        return f"DATATYPE"
 
 
 class Equal(Token):
     def __init__(self):
         super().__init__()
-        self.expr = "=="
+        self.expr = "\=\="
 
     def __str__(self) -> str:
         return "EQUAL"
@@ -45,7 +61,7 @@ class Equal(Token):
 class Greater(Token):
     def __init__(self):
         super().__init__()
-        self.expr = ">"
+        self.expr = "\>"
 
     def __str__(self) -> str:
         return "GREATER"
@@ -53,7 +69,7 @@ class Greater(Token):
 class GreaterOrEqual(Token):
     def __init__(self):
         super().__init__()
-        self.expr = ">="
+        self.expr = "\>\="
 
     def __str__(self) -> str:
         return "GREATEROFEQUAL"
@@ -61,7 +77,7 @@ class GreaterOrEqual(Token):
 class Less(Token):
     def __init__(self):
         super().__init__()
-        self.expr = "<"
+        self.expr = "\<"
 
     def __str__(self) -> str:
         return "LESS"
@@ -69,17 +85,25 @@ class Less(Token):
 class LessOrEqual(Token):
     def __init__(self):
         super().__init__()
-        self.expr = "<="
+        self.expr = "\<\="
 
     def __str__(self) -> str:
         return "LESSOREQUAL"
+
+class Operations(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = f"[{Less().expr}|{LessOrEqual().expr}|{Greater().expr}|{GreaterOrEqual().expr}|{Equal().expr}]+"
+
+    def __str__(self) -> str:
+        return "OPERATIONS"
 
 
 class Add(Token):
     def __init__(self):
         super().__init__()
         # self.expr = "=\+"
-        self.expr = f"\=\+\s+(?P<lhs>{String().expr})\s+(?P<rhs>{Float().expr}|{Integer().expr}|{String().expr})"
+        self.expr = f"\=\+\s+(?P<lhs>{String().expr})\s+(?P<rhs>{DataTypes().expr})"
         self.args = ["lhs", "rhs"]
 
     def __str__(self) -> str:
@@ -89,18 +113,26 @@ class Substract(Token):
     def __init__(self):
         super().__init__()
         # self.expr = "=\-"
-        self.expr = f"\=\-\s+(?P<lhs>{String().expr})\s+(?P<rhs>{Float().expr}|{Integer().expr}|{String().expr})"
+        self.expr = f"\=\-\s+(?P<lhs>{String().expr})\s+(?P<rhs>{DataTypes().expr})"
         self.args = ["lhs", "rhs"]
 
     def __str__(self) -> str:
         return "SUBSTRACT"
 
 
+class Destination(Token):
+    def __init__(self):
+        super().__init__()
+        self.expr = f"\=\:(?P<name>{String().expr})"
+    
+    def __str__(self) -> str:
+        return "DESTINATION {name}"
+
 class Variable(Token):
     def __init__(self):
         super().__init__()
         # self.expr = "^=:"
-        self.expr = f"\=\:\s+(?P<name>{String().expr})\s+\"*\'*(?P<value>{Float().expr}|{Integer().expr}|{String().expr})\"*\'*"
+        self.expr = f"\=\:\s+(?P<name>{String().expr})\s+\"*\'*(?P<value>{DataTypes().expr})\"*\'*"
         self.args = ["name", "value"]
 
     def __str__(self) -> str:
@@ -124,11 +156,13 @@ class If(Token):
     def __init__(self):
         super().__init__()
         # self.expr = "=\?"
-        self.expr = f"\=\?\s+(?P<lhs>[{Float}|{Integer}|{String}]+)\s+(?P<operation>[{Less}|{LessOrEqual}|{Greater}|{GreaterOrEqual}|{Equal}]+)\s+(?P<rhs>[{Float}|{Integer}|{String}]+)\s+\=\:\s+(?P<destination>[{Float}|{Integer}|{String}]+)"
-        self.args = ['lhs', 'operation', 'rhs', 'destination']
+        # self.expr = f"\=\?\s+(?P<lhs>[{Float().expr}|{Integer().expr}|{String().expr}]+)\s+(?P<operation>[{Less().expr}|{LessOrEqual().expr}|{Greater().expr}|{GreaterOrEqual().expr}|{Equal().expr}]+)\s+(?P<rhs>[{Float().expr}|{Integer().expr}|{String().expr}]+)\s+\=\:\s+(?P<destination>[{Float().expr}|{Integer().expr}|{String().expr}]+)"
+        # \=\?\s+(?P<lhs>[a-zA-Z]+)\s+(?P<operation>[\<|\=\<|\>|\=\>|\=\=]+)\s+(?P<rhs>[\d*.\d+|\d+|a-zA-Z]+)\s+\=\:\s+(?P<destination>[a-zA-Z]+)\s+(?P<value>[\d*.\d+|\d+|a-zA-Z]+)
+        self.expr = f"\=\?\s+(?P<lhs>{DataTypes().expr})\s+(?P<operation>{Operations().expr})\s+(?P<rhs>{DataTypes().expr})\s+(?P<action>.+)"
+        self.args = ['lhs', 'operation', 'rhs', 'action']
 
     def __str__(self) -> str:
-        return "IF {lhs} {operation} {rhs} ASSIGN {destination}"
+        return "IF {lhs} {operation} {rhs} {action}"
 
 class Goto(Token):
     def __init__(self):
@@ -218,8 +252,9 @@ class Undefined(Token):
 class TokenTypes(Enum):
 
     DATA_TYPES = [
-        Integer,
         Float,
+        Integer,
+        Boolean,
         String,
     ]
 

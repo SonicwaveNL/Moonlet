@@ -5,7 +5,6 @@ from pprint import pprint
 from typing import List, Union, Tuple
 from . import tokens as Tokens
 
-
 class Parser:
     """Represents the Parser of the Interpeter.
 
