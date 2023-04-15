@@ -1,252 +1,186 @@
+from typing import Optional, Union
 from enum import Enum
+from .position import Position
 
 
+# Base
 class Token:
-    def __init__(self):
+    def __init__(self, type: Optional[str] = '???', value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        self.type = type
+        self.value = value
+        self.pos = pos
         self.expr = None
-        self.args = []
+
+    def format_value(self):
+        return f"'{self.value}'" if isinstance(self.value, str) else str(self.value)
 
     def __str__(self) -> str:
-        return "TOKEN"
+        return f"Token(type='{self.type}', value={self.format_value()}, pos={self.pos})"
 
+    def __repr__(self) -> str:
+        return f"Token(type='{self.type}', value={self.format_value()}, pos={self.pos})"
+
+
+# Data types
 class Integer(Token):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("INT", value, pos)
         self.expr = "([-+]?\d+)"
 
-    def __str__(self) -> str:
-        return "INTEGER"
-
 class Float(Token):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("FLOAT", value, pos)
         self.expr = "([-+]?\d*\.\d+)"
 
-    def __str__(self) -> str:
-        return "FLOAT"
-
 class String(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "[a-zA-Z|\_]+"
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("STRING", value, pos)
+        self.expr = "(\'{1}\w+\'{1}|\"{1}\w+\"{1})"
 
-    def __str__(self) -> str:
-        return "STRING"
-
-class Boolean(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "true|false"
-
-    def __str__(self) -> str:
-        return "BOOLEAN"
-
-class DataTypes(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = f"{Integer().expr}|{Float().expr}|{String().expr}|{Boolean().expr}"
-    
-    def __str__(self) -> str:
-        return f"DATATYPE"
+class Identifier(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("IDEF", value, pos)
+        self.expr = "(\w)+"
 
 
-class Equal(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "\=\="
-
-    def __str__(self) -> str:
-        return "EQUAL"
-
-class Greater(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "\>"
-
-    def __str__(self) -> str:
-        return "GREATER"
-
-class GreaterOrEqual(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "\>\="
-
-    def __str__(self) -> str:
-        return "GREATEROFEQUAL"
-
-class Less(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "\<"
-
-    def __str__(self) -> str:
-        return "LESS"
-
-class LessOrEqual(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "\<\="
-
-    def __str__(self) -> str:
-        return "LESSOREQUAL"
-
-class Operations(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = f"[{Less().expr}|{LessOrEqual().expr}|{Greater().expr}|{GreaterOrEqual().expr}|{Equal().expr}]+"
-
-    def __str__(self) -> str:
-        return "OPERATIONS"
-
-
+# Arithmetic Operators
 class Add(Token):
-    def __init__(self):
-        super().__init__()
-        # self.expr = "=\+"
-        self.expr = f"\=\+\s+(?P<lhs>{String().expr})\s+(?P<rhs>{DataTypes().expr})"
-        self.args = ["lhs", "rhs"]
-
-    def __str__(self) -> str:
-        return "ADD"
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("ADD", value, pos)
+        self.expr = "\+{1}"
 
 class Substract(Token):
-    def __init__(self):
-        super().__init__()
-        # self.expr = "=\-"
-        self.expr = f"\=\-\s+(?P<lhs>{String().expr})\s+(?P<rhs>{DataTypes().expr})"
-        self.args = ["lhs", "rhs"]
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("SUBSTRACT", value, pos)
+        self.expr = "\-{1}"
 
-    def __str__(self) -> str:
-        return "SUBSTRACT"
+class Multiply(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("MUTIPLY", value, pos)
+        self.expr = "\*{1}"
+
+class Devide(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("DEVIDE", value, pos)
+        self.expr = "\/{1}"
 
 
-class Destination(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = f"\=\:(?P<name>{String().expr})"
-    
-    def __str__(self) -> str:
-        return "DESTINATION {name}"
+# Characters
+class Comma(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("COMMA", value, pos)
+        self.expr = "\,{1}"
 
-class Variable(Token):
-    def __init__(self):
-        super().__init__()
-        # self.expr = "^=:"
-        self.expr = f"\=\:\s+(?P<name>{String().expr})\s+\"*\'*(?P<value>{DataTypes().expr})\"*\'*"
-        self.args = ["name", "value"]
-
-    def __str__(self) -> str:
-        return "VARIABLE {name}"
-
-class Func(Token):
-    # "^\=\|\s+(?P<func_name>\w+)\s*\(+\s*(?P<func_params>[\w|\,\s*]+)\s*\)+"
-
-    def __init__(self):
-        super().__init__()
-        # self.expr = "=\|"
-        # self.expr = f"\=\|\s+(?P<name>{String().expr})\s+\(\s*(?P<params>[\w|\,\s*]+)\)\s+\=\:\s+(?P<destination>{String().expr})"
-        # self.expr = "\=\|\s+(?P<name>[a-zA-Z]+)\s+\(\s*(?P<params>[\w|\,\s*]+)\)\s+\=\{(?P<content>[\t\=\+\-|\>|\<|\w|\,|\n|\s*]+)\}"
-        self.expr = "\=\|\s+(?P<name>[a-zA-Z]+)\s+\(\s*(?P<params>[\w|\,\s*]+)\)\s+\=\{"
-        self.args = ['name', 'params']
-
-    def __str__(self) -> str:
-        return "FUNCTION {name} ({params})"
-
-class If(Token):
-    def __init__(self):
-        super().__init__()
-        # self.expr = "=\?"
-        # self.expr = f"\=\?\s+(?P<lhs>[{Float().expr}|{Integer().expr}|{String().expr}]+)\s+(?P<operation>[{Less().expr}|{LessOrEqual().expr}|{Greater().expr}|{GreaterOrEqual().expr}|{Equal().expr}]+)\s+(?P<rhs>[{Float().expr}|{Integer().expr}|{String().expr}]+)\s+\=\:\s+(?P<destination>[{Float().expr}|{Integer().expr}|{String().expr}]+)"
-        # \=\?\s+(?P<lhs>[a-zA-Z]+)\s+(?P<operation>[\<|\=\<|\>|\=\>|\=\=]+)\s+(?P<rhs>[\d*.\d+|\d+|a-zA-Z]+)\s+\=\:\s+(?P<destination>[a-zA-Z]+)\s+(?P<value>[\d*.\d+|\d+|a-zA-Z]+)
-        self.expr = f"\=\?\s+(?P<lhs>{DataTypes().expr})\s+(?P<operation>{Operations().expr})\s+(?P<rhs>{DataTypes().expr})\s+(?P<action>.+)"
-        self.args = ['lhs', 'operation', 'rhs', 'action']
-
-    def __str__(self) -> str:
-        return "IF {lhs} {operation} {rhs} {action}"
-
-class Goto(Token):
-    def __init__(self):
-        super().__init__()
-        # self.expr = "=\]"
-        # self.expr = "\=\]\s+(?P<name>{String}+)"
-        self.expr = f"\=\]\s+(?P<name>{String().expr})\s+\((?P<params>[\w|\,\s*]+)\)\s+[\=\:\s]*(?P<destination>{String().expr})*"
-        self.args = ["name", "params", "destination"]
-
-    def __str__(self) -> str:
-        return "GOTO {name}"
-
-class Return(Token):
-    def __init__(self):
-        super().__init__()
-        # self.expr = "\=\>"
-        self.expr = f"\=\>\s+(?P<name>{String().expr})"
-        self.args = ["name"]
-
-    def __str__(self) -> str:
-        return "RETURN {name}"
+class Colon(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("COLON", value, pos)
+        self.expr = "\:{1}"
 
 class ParOpen(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "\("
-
-    def __str__(self) -> str:
-        return "PARENTHESISOPEN"
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("PAR_OPEN", value, pos)
+        self.expr = "\({1}"
 
 class ParClose(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "\)"
-
-    def __str__(self) -> str:
-        return "PARENTHESISCLOSE"
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("PAR_CLOSE", value, pos)
+        self.expr = "\){1}"
 
 class BracketOpen(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "\{"
-
-    def __str__(self) -> str:
-        return "BRACKETOPEN"
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("BRACKET_OPEN", value, pos)
+        self.expr = "\{{1}"
 
 class BracketClose(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "\}"
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("BRACKET_CLOSE", value, pos)
+        self.expr = "\}{1}"
 
-    def __str__(self) -> str:
-        return "BRACKETCLOSE"
+class NewLine(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("NEWLINE", value, pos)
+        self.expr = "\n{1}"
 
-class Tab(Token):
+class EndOfFile(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("EOF", value, pos)
+        self.expr = "\s{1}"
 
-    def __init__(self):
-        super().__init__()
-        self.expr = "^[ \t]+"
 
-    def __str__(self) -> str:
-        return "TAB"
+# Comparison Operators
+class Equal(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("EQUAL", value, pos)
+        self.expr = "\=\="
 
-class EmptyLine(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = "^\n{1}\s*\n*"
-        # self.expr = "^\}\n"
-        # self.expr = "\n\s*\n|^\s*"
-        # self.expr = "\n\s+\n|^\s+"
-        # self.expr = "\n\s*\n"
-        # self.expr = "^\s{1}\n*"
-        # self.expr = "\n\s*\n|^\s*"
+class Greater(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("GREATER", value, pos)
+        self.expr = "\>"
 
-    def __str__(self) -> str:
-        return "EMPTYLINE"
+class GreaterOrEqual(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("GREATER_OR_EQUAL", value, pos)
+        self.expr = "\>\="
 
-class Undefined(Token):
-    def __init__(self):
-        super().__init__()
-        self.expr = ""
+class Less(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("LESS", value, pos)
+        self.expr = "\<"
 
-    def __str__(self) -> str:
-        return "UNDEFINED"
+class LessOrEqual(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("LESS_OR_EQUAL", value, pos)
+        self.expr = "\<\="
+
+
+# Assignment Operators
+class AssignAdd(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("ASSIGN_ADD", value, pos)
+        self.expr = "\=\+"
+
+class AssignSub(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("ASSIGN_SUB", value, pos)
+        self.expr = "\=\-"
+
+class AssignMul(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("ASSIGN_MUL", value, pos)
+        self.expr = "\=\*"
+
+class AssignDev(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("ASSIGN_DEV", value, pos)
+        self.expr = "\=\/"
+
+
+# Statements
+class Variable(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("VAR", value, pos)
+        self.expr = "\=\:"
+
+class Func(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("FUNC", value, pos)
+        self.expr = "\=\|"
+
+class CodeBlock(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("CODE_BLOCK", value, pos)
+        self.expr = "\=\{"
+
+class If(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("IF", value, pos)
+        self.expr = "\=\?"
+
+class Return(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__("RETURN", value, pos)
+        self.expr = "\=\>"
 
 
 class TokenTypes(Enum):
@@ -254,11 +188,28 @@ class TokenTypes(Enum):
     DATA_TYPES = [
         Float,
         Integer,
-        Boolean,
         String,
+        Identifier,
     ]
 
-    COMPARISONS = [
+    MATH_OPS = [
+        Add,
+        Substract,
+        Multiply,
+        Devide,
+    ]
+
+    SINGLE_CHARS = [
+        Comma,
+        Colon,
+        ParOpen,
+        ParClose,
+        BracketOpen,
+        BracketClose,
+        NewLine,
+    ]
+
+    COMPERATIONS = [
         Equal,
         Greater,
         GreaterOrEqual,
@@ -266,17 +217,19 @@ class TokenTypes(Enum):
         LessOrEqual,
     ]
 
-    OPERATIONS = [
+    ASSIGNMENT_OPS = [
+        AssignAdd,
+        AssignSub,
+        AssignMul,
+        AssignDev,
+    ]
+
+    STATEMENTS = [
         Variable,
         Func,
+        CodeBlock,
         If,
-        Goto,
         Return,
-        Add,
-        Substract,
-        ParOpen,
-        ParClose,
-        BracketOpen,
-        BracketClose,
-        Undefined,
     ]
+
+    OPERATORS = MATH_OPS + COMPERATIONS + ASSIGNMENT_OPS
