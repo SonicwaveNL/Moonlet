@@ -1,6 +1,6 @@
 import re
 from functools import reduce
-from .tokens import TokenTypes, NewLine, Float, String, Integer, EndOfFile
+from .tokens import TokenTypes, NewLineToken, FloatToken, StringToken, IntegerToken, EOFToken
 from .position import Position
 from .errors import Error, InvalidSyntaxError, UnknownCharError
 
@@ -18,11 +18,11 @@ class Lexer:
         # the size of the 'text' > 0
         if len(self.text) == 0:
             self.error = Error("Empty", "Couldn't perform Lexing as no 'text' input was given")
-            return [EndOfFile(pos=self.pos)], self.error
+            return [EOFToken(pos=self.pos)], self.error
 
         tokens = self.tokenize(self.text)
         self.pos.nextl()
-        return tokens + [EndOfFile(pos=self.pos)], self.error
+        return tokens + [EOFToken(pos=self.pos)], self.error
 
     def tokenize(self, text):
 
@@ -52,7 +52,7 @@ class Lexer:
             # If the token is a newline,
             # then reformat the value and
             # set the Lexer position to nextline
-            if token is NewLine:
+            if token is NewLineToken:
                 found = token('\\n', self.pos.copy())
                 self.pos.nextl()
             
@@ -86,19 +86,19 @@ class Lexer:
             # happend during the process
             try:
 
-                # Else if the token is a Float,
+                # Else if the token is a FloatToken,
                 # then convert the part to it's type
-                if token is Float:
+                if token is FloatToken:
                     part = float(part)
 
-                # Else if the token is a Integer,
+                # Else if the token is a IntegerToken,
                 # then convert the part to it's type
-                elif token is Integer:
+                elif token is IntegerToken:
                     part = int(part)
 
-                # Else if the token is a String,
+                # Else if the token is a StringToken,
                 # then strip the (double) quotes
-                elif token is String:
+                elif token is StringToken:
                     part = part.replace("'", '')
                     part = part.replace('"', '')
 

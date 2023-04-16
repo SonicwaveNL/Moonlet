@@ -25,14 +25,10 @@ class Launcher:
         self.tokens, self.error = self.lexer.run()
 
         if self.error is not None:
-            print(f"{self.error.type}: {self.error.details}")
+            print(self.error)
             return
         
-        print(f"{'TOKENS': <15}", end=' | ')
-        print(f"{'VALUE': ^12}", end=' | ')
-        print(f"{'LINE': ^7}", end=' | ')
-        print(f"{'START': ^7}", end=' | ')
-        print(f"{'END': >5}")
+        print(f"{'TOKENS': <20} | {'VALUE': ^10} | {'LINE': ^7} | {'START': ^7} | {'END': >5}")
         print(f"{'='*60}")
 
         line = 0
@@ -42,11 +38,7 @@ class Launcher:
                 print(f"{'-'*60}\n", end='')
                 line = token.pos.line
 
-            print(f"{token.type: <15}", end=' | ')
-            print(f"{token.format_value(): ^12}", end=' | ')
-            print(f"{token.pos.line: ^7}", end=' | ')
-            print(f"{token.pos.start: ^7}", end=' | ')
-            print(f"{token.pos.end: >5}")
+            print(f"{token.__class__.__name__: <20} | {repr(token.value): ^10} | {token.pos.line: ^7} | {token.pos.start: ^7} | {token.pos.end: >5}")
 
         # Run the Parser to generate the 'AST'
         print(f"\nPARSER\n{'='*60}")
@@ -68,7 +60,7 @@ class Launcher:
 
                     if name == 'args' or name == 'body':
                         print(f"{name: <15}")
-                        for item in value:
+                        for item in value.items:
                             print(f"{' '*15}", end=' ')
                             print(f"{str(item): <45}")
                     
@@ -83,11 +75,9 @@ class Launcher:
 
         # Run the Interpeter to execute the 'AST'
         print(f"\nPROGRAM\n{'='*60}")
-        main_scope = Scope("<Program>")
-
         prog = Program()
-        prog_result = prog.exec(ats.node, main_scope)
+        prog_result = prog.exec(ats.node, Scope(name="<Program>", origin=ats.node))
 
         if prog_result.error is not None:
-            print(f"\n{prog_result.error.type}: {prog_result.error.details}")
+            print(f"\n{prog_result.error}")
             print(f"{'='*60}")

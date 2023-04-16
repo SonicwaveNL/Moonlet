@@ -8,10 +8,13 @@ class Position:
         self.end = start if end is None else end
 
     def __str__(self) -> str:
-        return f"Pos(line={self.line}, start={self.start}, end={self.end})"
+        if self.end is None: 
+            return f"{self.line} [{self.start}]"
+        
+        return f"{self.line} [{self.start}:{self.end}]"
     
     def __repr__(self) -> str:
-        return f"Pos(line={self.line}, start={self.start}, end={self.end})"
+        return f"Position(line={self.line!r}, start={self.start!r}, end={self.end!r})"
     
     def next(self, steps: Optional[int] = 1):
         self.start += steps

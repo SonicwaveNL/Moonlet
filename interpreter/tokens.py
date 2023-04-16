@@ -5,231 +5,232 @@ from .position import Position
 
 # Base
 class Token:
-    def __init__(self, type: Optional[str] = '???', value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        self.type = type
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
         self.value = value
         self.pos = pos
         self.expr = None
 
-    def format_value(self):
-        return f"'{self.value}'" if isinstance(self.value, str) else str(self.value)
-
     def __str__(self) -> str:
-        return f"Token(type='{self.type}', value={self.format_value()}, pos={self.pos})"
+        return f"{self.__class__.__name__}({self.value!r})"
 
     def __repr__(self) -> str:
-        return f"Token(type='{self.type}', value={self.format_value()}, pos={self.pos})"
+        return f"{self.__class__.__name__}(value={self.value!r}, pos={self.pos!r})"
 
 
 # Data types
-class Integer(Token):
+class IntegerToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("INT", value, pos)
+        super().__init__(value, pos)
         self.expr = "([-+]?\d+)"
 
-class Float(Token):
+class FloatToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("FLOAT", value, pos)
+        super().__init__(value, pos)
         self.expr = "([-+]?\d*\.\d+)"
 
-class String(Token):
+class StringToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("STRING", value, pos)
+        super().__init__(value, pos)
         self.expr = "(\'{1}\w+\'{1}|\"{1}\w+\"{1})"
 
-class Identifier(Token):
+class IDToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("IDEF", value, pos)
+        super().__init__(value, pos)
         self.expr = "(\w)+"
 
 
 # Arithmetic Operators
-class Add(Token):
+class AddToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("ADD", value, pos)
+        super().__init__(value, pos)
         self.expr = "\+{1}"
 
-class Substract(Token):
+class SubToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("SUBSTRACT", value, pos)
+        super().__init__(value, pos)
         self.expr = "\-{1}"
 
-class Multiply(Token):
+class MulToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("MUTIPLY", value, pos)
+        super().__init__(value, pos)
         self.expr = "\*{1}"
 
-class Devide(Token):
+class DivToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("DEVIDE", value, pos)
+        super().__init__(value, pos)
         self.expr = "\/{1}"
 
 
 # Characters
-class Comma(Token):
+class CommaToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("COMMA", value, pos)
+        super().__init__(value, pos)
         self.expr = "\,{1}"
 
-class Colon(Token):
+class ColonToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("COLON", value, pos)
+        super().__init__(value, pos)
         self.expr = "\:{1}"
 
-class ParOpen(Token):
+class ParOpenToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("PAR_OPEN", value, pos)
+        super().__init__(value, pos)
         self.expr = "\({1}"
 
-class ParClose(Token):
+class ParCloseToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("PAR_CLOSE", value, pos)
+        super().__init__(value, pos)
         self.expr = "\){1}"
 
-class BracketOpen(Token):
+class BracketOpenToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("BRACKET_OPEN", value, pos)
+        super().__init__(value, pos)
         self.expr = "\{{1}"
 
-class BracketClose(Token):
+class BracketCloseToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("BRACKET_CLOSE", value, pos)
+        super().__init__(value, pos)
         self.expr = "\}{1}"
 
-class NewLine(Token):
+class NewLineToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("NEWLINE", value, pos)
+        super().__init__(value, pos)
         self.expr = "\n{1}"
 
-class EndOfFile(Token):
+class EOFToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("EOF", value, pos)
+        super().__init__(value, pos)
         self.expr = "\s{1}"
 
 
 # Comparison Operators
-class Equal(Token):
+class EqualToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("EQUAL", value, pos)
+        super().__init__(value, pos)
         self.expr = "\=\="
 
-class Greater(Token):
+class NotEqualToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("GREATER", value, pos)
+        super().__init__(value, pos)
+        self.expr = "\!\="
+
+class GreaterToken(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__(value, pos)
         self.expr = "\>"
 
-class GreaterOrEqual(Token):
+class GreaterOrEqualToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("GREATER_OR_EQUAL", value, pos)
+        super().__init__(value, pos)
         self.expr = "\>\="
 
-class Less(Token):
+class LessToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("LESS", value, pos)
+        super().__init__(value, pos)
         self.expr = "\<"
 
-class LessOrEqual(Token):
+class LessOrEqualToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("LESS_OR_EQUAL", value, pos)
+        super().__init__(value, pos)
         self.expr = "\<\="
 
 
 # Assignment Operators
-class AssignAdd(Token):
+class AssignAddToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("ASSIGN_ADD", value, pos)
+        super().__init__(value, pos)
         self.expr = "\=\+"
 
-class AssignSub(Token):
+class AssignSubToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("ASSIGN_SUB", value, pos)
+        super().__init__(value, pos)
         self.expr = "\=\-"
 
-class AssignMul(Token):
+class AssignMulToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("ASSIGN_MUL", value, pos)
+        super().__init__(value, pos)
         self.expr = "\=\*"
 
-class AssignDev(Token):
+class AssignDivToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("ASSIGN_DEV", value, pos)
+        super().__init__(value, pos)
         self.expr = "\=\/"
 
 
 # Statements
-class Variable(Token):
+class VarToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("VAR", value, pos)
+        super().__init__(value, pos)
         self.expr = "\=\:"
 
-class Func(Token):
+class FuncToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("FUNC", value, pos)
+        super().__init__(value, pos)
         self.expr = "\=\|"
 
-class CodeBlock(Token):
+class CodeBlockToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("CODE_BLOCK", value, pos)
+        super().__init__(value, pos)
         self.expr = "\=\{"
 
-class If(Token):
+class IfToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("IF", value, pos)
+        super().__init__(value, pos)
         self.expr = "\=\?"
 
-class Return(Token):
+class ReturnToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
-        super().__init__("RETURN", value, pos)
+        super().__init__(value, pos)
         self.expr = "\=\>"
 
 
 class TokenTypes(Enum):
 
     DATA_TYPES = [
-        Float,
-        Integer,
-        String,
-        Identifier,
+        FloatToken,
+        IntegerToken,
+        StringToken,
+        IDToken,
     ]
 
     MATH_OPS = [
-        Add,
-        Substract,
-        Multiply,
-        Devide,
+        AddToken,
+        SubToken,
+        MulToken,
+        DivToken,
     ]
 
     SINGLE_CHARS = [
-        Comma,
-        Colon,
-        ParOpen,
-        ParClose,
-        BracketOpen,
-        BracketClose,
-        NewLine,
+        CommaToken,
+        ColonToken,
+        ParOpenToken,
+        ParCloseToken,
+        BracketOpenToken,
+        BracketCloseToken,
+        NewLineToken,
     ]
 
     COMPERATIONS = [
-        Equal,
-        Greater,
-        GreaterOrEqual,
-        Less,
-        LessOrEqual,
+        EqualToken,
+        GreaterToken,
+        GreaterOrEqualToken,
+        LessToken,
+        LessOrEqualToken,
     ]
 
     ASSIGNMENT_OPS = [
-        AssignAdd,
-        AssignSub,
-        AssignMul,
-        AssignDev,
+        AssignAddToken,
+        AssignSubToken,
+        AssignMulToken,
+        AssignDivToken,
     ]
 
     STATEMENTS = [
-        Variable,
-        Func,
-        CodeBlock,
-        If,
-        Return,
+        VarToken,
+        FuncToken,
+        CodeBlockToken,
+        IfToken,
+        ReturnToken,
     ]
 
     OPERATORS = MATH_OPS + COMPERATIONS + ASSIGNMENT_OPS
