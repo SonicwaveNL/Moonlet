@@ -7,7 +7,7 @@ from .tokens import (
     AddToken, SubToken, MulToken, DivToken,
     EqualToken, GreaterToken, GreaterOrEqualToken, LessToken, LessOrEqualToken,
     AssignAddToken, AssignSubToken, AssignMulToken, AssignDivToken,
-    VarToken, FuncToken, CodeBlockToken, IfToken, ReturnToken,
+    VarToken, FuncToken, CodeBlockToken, CallToken, IfToken, ReturnToken,
 )
 
 # Base
@@ -94,10 +94,14 @@ class VarNode(BaseNode):
         self.value = value
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}({self.token.value!r} {self.id.value} {self.value.value!r})"
+        return f"{self.__class__.__name__}({self.token.value!r} {self.id.value}" + (f" {self.value.value!r})" if self.value is not None else ")")
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id={self.id!r}, value={self.value!r}, token={self.token!r})"
+    
+    @property
+    def name(self) -> str:
+        return self.id.value
 
 class ReturnNode(BaseNode):
     def __init__(self, return_value: Optional[BaseNode], token: ReturnToken):
@@ -126,6 +130,24 @@ class FuncNode(BaseNode):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id={self.id!r}, args={self.args!r}, body={self.body!r}, start={self.start!r}, end={self.end!r}, token={self.token!r})"
 
+    @property
+    def name(self) -> str:
+        return self.id.value
+    
+class CallNode(BaseNode):
+
+    def __init__(self, id: IDNode, args: Optional[ListNode], result: Optional[VarNode], token: CallToken):
+        super().__init__(token)
+        self.id = id
+        self.args = args
+        self.result = result
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}({self.name!r}({self.args}))"
+    
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(id={self.id!r}, args={self.args!r}, result={self.result!r}, token={self.token!r})"
+    
     @property
     def name(self) -> str:
         return self.id.value

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Any
 from functools import reduce
 from .tokens import (
     Token,
@@ -9,7 +9,7 @@ from .tokens import (
     AddToken, SubToken, MulToken, DivToken,
     EqualToken, GreaterToken, GreaterOrEqualToken, LessToken, LessOrEqualToken,
     AssignAddToken, AssignSubToken, AssignMulToken, AssignDivToken,
-    VarToken, FuncToken, CodeBlockToken, IfToken, ReturnToken,
+    VarToken, FuncToken, CodeBlockToken, CallToken, IfToken, ReturnToken,
 )
 from .nodes import (
     BaseNode,
@@ -22,6 +22,7 @@ from .nodes import (
     VarNode,
     ReturnNode,
     FuncNode,
+    CallNode,
 )
 from .errors import (
     Error,
@@ -95,17 +96,16 @@ class Value:
 
 class Function:
     
-    def __init__(self, node: FuncNode, params: Optional[List], body: Optional[List], scope: Scope):
+    def __init__(self, node: FuncNode, body: Optional[ListNode], scope: Scope):
         self.node = node
-        self.params = list() if params is None else params
         self.body = body
         self.scope = scope
 
     def __str__(self) -> str:
-        return f"{self.name}({self.params})"
+        return f"{self.name}({', '.join(self.params)})"
 
     def __repr__(self) -> str:
-        return f"Function(name={self.name!r}, params={self.params!r}, scope={self.scope!r})"
+        return f"Function(name={self.name!r}, body={self.body!r}, scope={self.scope!r})"
 
     @property
     def name(self) -> str:
@@ -114,6 +114,16 @@ class Function:
     @property
     def args(self):
         return self.node.args
+    
+    @property
+    def params(self):
+        if (
+            not isinstance(self.node.args, ListNode)
+            or self.node.args.items is None
+        ):
+            return list()
+
+        return list(map(lambda x: x.value, self.node.args.items))
 
 
 class Scope:
@@ -136,10 +146,11 @@ class Scope:
     def set(self, key: str, value: Union[Value, Function]):
         self.args[key] = value
 
-    def get(self, key: str) -> Union[Value, None]:
-        return self.args.get(key, None)
+    def get(self, key: str) -> Union[Value, Function, None]:
+        if self.exist(key):
+            return self.args.get(key, None)
     
-    def remove(self, key: str) -> Union[Value, None]:
+    def remove(self, key: str) -> Union[Value, Function, None]:
         return self.args.pop(key, None)
 
     def format_args(self):
@@ -151,18 +162,28 @@ class Scope:
 
 class ProgramState:
     
-    def __init__(self):
-        self.result = None
-        self.error = None
+    def __init__(
+        self,
+        result: Optional[Any] = None, 
+        error: Union[ProgramState, Error, None] = None
+    ) -> None:
+        self.result = result
+        self.error = error
+
+    def __str__(self) -> str:
+        if self.error is not None:
+            return f"ProgramState({self.error})"
+        
+        return f"ProgramState({self.result})"
+
+    def __repr__(self) -> str:
+        return f"ProgramState(result={self.result!r}, error={self.error!r})"
 
     def add(self, state):
         if state.error is not None:
             self.error = state.error
         return state.result
     
-    def prev(self):
-        pass
-
     def success(self, result):
         self.result = result
         return self
@@ -225,20 +246,21 @@ class Program:
         elif isinstance(node, FuncNode):
             return p_state.run(self.exec_func_node(node, scope))
 
+        elif isinstance(node, CallNode):
+            return p_state.run(self.exec_call_node(node, scope))
+
         return p_state.fail(NotImplementedError(f"Method for function '{type(node).__name__}' is not implemented", node.token.pos))
 
-    def iter(self, items: List[BaseNode], scope: Scope):
+    def iter(self, items: List[BaseNode], scope: Scope, output: Optional[List] = None):
         p_state = ProgramState()
+        output = list() if output is None else output
 
         if len(items) <= 0:
-            return p_state.fail(RunTimeError(f"Can't perform iteration on empty list"))
-    
-        elif len(items) == 1:
-            return p_state.run(self.exec(items[0], scope))
-
-        _ = p_state.add(self.exec(items[0], scope))
+            return p_state.success(output)
+        
+        result = p_state.add(self.exec(items[0], scope))
         if p_state.failed(): return p_state
-        return self.iter(items[1:], scope)
+        return self.iter(items[1:], scope, output + [result])
 
     # ==========================================================
 
@@ -380,17 +402,101 @@ class Program:
             )
 
         func_scope = Scope(name=f"<Function: '{node.name}'>", origin=node)
-        
-        func_args = p_state.add(self.exec_list_node(node.args, func_scope))
+
+        if isinstance(node.args, ListNode) and node.args.items is not None:
+            _ = p_state.add(self.exec_list_node(node.args, func_scope))
+            if p_state.failed(): return p_state
+
+        _ = p_state.add(self.exec_list_node(node.body, func_scope))
         if p_state.failed(): return p_state
 
-        func_body = p_state.add(self.exec_list_node(node.body, func_scope))
-        if p_state.failed(): return p_state
-
-        func = Function(node, func_args, func_body, func_scope)
+        func = Function(node, node.body, func_scope)
 
         scope.set(node.name, func)
 
         self.__show(node, func_scope)
 
         return p_state.success(func)
+    
+    def exec_call_node(self, node: CallNode, scope: Scope) -> ProgramState:
+
+        p_state = ProgramState()
+
+        # Check if the 'function' is
+        # defined within the given 'scope'
+        if not scope.exist(node.name):
+            return p_state.fail(
+                RunTimeError(f"Function with name '{node.name}' isn't defined")
+            )
+        
+        # Retrieve the definition
+        func = scope.get(node.name)
+
+        # Check if the definition
+        # within the given 'scope'
+        # is an actual 'function'
+        if not isinstance(func, Function):
+            return p_state.fail(
+                RunTimeError(f"Can't call '{node.name}' as it isn't a function")
+            )
+        
+        # Check if both the arguments
+        # of the 'call' and the 'function'
+        # are equal in size/amount
+        if node.args is None and len(func.params) > 0:
+            return p_state.fail(
+                RunTimeError(f"Missing '{len(func.params)}' arguments for function '{func.name}', got '0'")
+            )
+        
+        elif len(node.args.items) != len(func.params):
+            return p_state.fail(
+                RunTimeError(f"Missing '{len(func.params)}' arguments for function '{func.name}', got '{len(node.args.items)}'")
+            )
+
+        # Execute the expressions of
+        # the param arguments of the
+        # 'call', to build the input
+        # params if the 'function'
+        call_args = p_state.add(self.exec_list_node(node.args, scope))
+
+        # Stich everything back togeter
+        # to define the input params
+        func_args = dict(zip(func.params, call_args))
+
+        # Define a new 'scope' for this
+        # instance of the 'function call'
+        call_scope = Scope(name=f"<Call: '{node.name}'>", args=func_args, origin=node)
+
+        # Run the body of the 'function'
+        _ = p_state.add(self.exec_list_node(func.body, call_scope))
+        if p_state.failed(): return p_state
+        
+        self.__show(node, call_scope)
+        
+        # If any specification, about were to
+        # store the 'returned result' of the 'call',
+        # is specified, then store it within outer
+        # 'scope', at the same level as the 'call'
+        if isinstance(node.result, VarNode):
+
+            # Check if the function even has
+            # a 'returned value' specified
+            if call_scope.result is None:
+                return p_state.fail(
+                    RunTimeError(f"Function '{node.name}' doesn't have a return value")
+                ) 
+            
+            # Before setting the 'scope' arg,
+            # prevent any overwrite of anything
+            # that is not a 'value' (like a 'function')
+            if scope.exist(node.result.name):
+                value = scope.get(node.result.name)
+
+                if value is not None and not isinstance(value, (Value, Empty)):
+                    return p_state.fail(
+                        RunTimeError(f"Can't override '{value.__class__.__name__}'")
+                    )
+                
+            scope.set(node.result.name, call_scope.result)
+
+        return p_state.success(call_scope)

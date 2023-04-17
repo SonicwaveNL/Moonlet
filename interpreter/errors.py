@@ -8,7 +8,7 @@ class Error:
         self.pos = pos
 
     def __str__(self):
-        return f"{self.__class__.__name__}: {self.details!r}"
+        return f"{self.__class__.__name__}: {self.details}"
     
     def __repr__(self):
         return f"{self.__class__.__name__}(details='{self.details!r}', pos={self.pos!r})"

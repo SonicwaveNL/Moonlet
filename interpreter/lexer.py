@@ -1,8 +1,9 @@
 import re
+from typing import Optional, Tuple, Union, List
 from functools import reduce
-from .tokens import TokenTypes, NewLineToken, FloatToken, StringToken, IntegerToken, EOFToken
+from .tokens import TokenTypes, NewLineToken, FloatToken, StringToken, IntegerToken, EOFToken, CommentToken
 from .position import Position
-from .errors import Error, InvalidSyntaxError, UnknownCharError
+from .errors import Error, InvalidSyntaxError
 
 
 class Lexer:
@@ -56,16 +57,34 @@ class Lexer:
                 found = token('\\n', self.pos.copy())
                 self.pos.nextl()
             
-            # Or else
+            # Or else define the found token,
+            # and return the found result
             else:
                 found = token(text[0], self.pos.copy())
                 self.pos.next()
 
             return found, text[1:] if len(text) > 1 else None
         
-        # Start building a part to
-        # continue with the token matching
-        rest, part, size = self.build_part(text)
+        # If current 'char' is a 'quote' 
+        # or a 'double quote', then
+        # build the next part, while
+        # ignoring whitespaces
+        if len(text) > 1 and (text[0] == '"' or text[0] == "'"):
+            rest, part, size = self.build_part(
+                text=text[1:],
+                find=text[0]
+            )
+
+            if part.count(text[0]) < 1:
+                self.error = InvalidSyntaxError(
+                    f"Expected '\"', \"'\"",
+                    self.pos.copy(size - 1)
+                )
+                return None, None
+            
+            part = text[0] + part
+        else:
+            rest, part, size = self.build_part(text)
 
         # Try to find the matching token,
         # with the part that was made before
@@ -96,6 +115,17 @@ class Lexer:
                 elif token is IntegerToken:
                     part = int(part)
 
+                # Else if the token is a CommentToken,
+                # continue part building, until the end
+                elif token is CommentToken:
+                    found = token(part, self.pos.copy(size - 1))
+                    rest, _, comment_size = self.build_part(
+                        text=rest,
+                        stops=["\n", "'", '"']
+                    )
+                    self.pos.next(size + comment_size - 1)
+                    return found, rest
+                
                 # Else if the token is a StringToken,
                 # then strip the (double) quotes
                 elif token is StringToken:
@@ -110,7 +140,7 @@ class Lexer:
                 self.error = InvalidSyntaxError(f"Cannot create {token} with value '{part}'")
                 return None, None
         
-        self.error = UnknownCharError(f"'{part}' is not recognized", self.pos.copy(size - 1))
+        self.error = InvalidSyntaxError(f"{part!r} isn't a valid expression", self.pos.copy(size - 1))
         return None, None
     
     def match_tokens(self, text, tokens):
@@ -133,21 +163,36 @@ class Lexer:
 
         return None
     
-    def build_part(self, text, result = '', size = 0):
+    def build_part(
+            self, 
+            text: str, 
+            result: Optional[str] = '', 
+            size: Optional[int] = 0,
+            stops: Optional[List] = None,
+            find: Optional[str] = None
+        ) -> Tuple[Union[str, None], Union[str, None], int]:
 
         # Define a list of chars, where if
         # the current char is one of these chars,
-        # then stop with building the part
-        stops = [' ', '\t', '\n', '(', ')', ',']
+        # then stop with building the part,
+        # (if no 'find' param is given)
+        if stops is None:
+            stops = [' ', '\t', '\n', '(', ')', ',']
         
         # Return the result if no char is
         # left for the part building process
         if len(text) == 0:
             return None, result, size
         
+        # Return when the 'find' char is found
+        if find is not None and text[0] == find:
+            if len(text) > 1:
+                return text[1:], result + text[0], size + 1
+            return None, result + text[0], size + 1
+        
         # Stop building the part, if current
         # char is within the 'stops' list
-        elif text[0] in stops:
+        elif find is None and text[0] in stops:
             return text, result, size
 
         # Return the result + the last char,
@@ -158,4 +203,10 @@ class Lexer:
         # Continue building the part with
         # the remaining text, and add
         # the current char to the result
-        return self.build_part(text[1:], result + text[0], size + 1)
+        return self.build_part(
+            text=text[1:],
+            result=result + text[0],
+            size=size + 1,
+            stops=stops,
+            find=find
+        )

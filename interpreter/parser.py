@@ -7,7 +7,7 @@ from .tokens import (
     AddToken, SubToken, MulToken, DivToken,
     EqualToken, GreaterToken, GreaterOrEqualToken, LessToken, LessOrEqualToken,
     AssignAddToken, AssignSubToken, AssignMulToken, AssignDivToken,
-    VarToken, FuncToken, CodeBlockToken, IfToken, ReturnToken,
+    VarToken, FuncToken, CodeBlockToken, CallToken, IfToken, ReturnToken,
 )
 from .nodes import (
     NumberNode,
@@ -19,11 +19,11 @@ from .nodes import (
     VarNode,
     ReturnNode,
     FuncNode,
+    CallNode,
 )
 from .errors import (
     Error,
     InvalidSyntaxError,
-    UnknownCharError,
     NotImplementedError,
 )
 
@@ -68,7 +68,7 @@ class Parser:
         self.index += 1
         self.set_current()
 
-        # print(f"NEXT[{self.index}] >> {self.current}")
+        # print(f"NEXT[{self.index:>2}] {'>>': ^4} {self.current}")
         
         return self.current
 
@@ -131,8 +131,13 @@ class Parser:
             result = p_state.add(self.atom())
             if p_state.failed(): return p_state
             return p_state.success(ReturnNode(result, return_token))
+        
+        elif isinstance(self.current, CallToken):
+            result = p_state.add(self.func_call())
+            if p_state.failed(): return p_state
+            return p_state.success(result)
            
-        return p_state.fail(NotImplementedError(f"'{self.current.type}' Statement is not implemented"))
+        return p_state.fail(NotImplementedError(f"'{self.current}' Statement is not implemented"))
             
     def expr(self):
         p_state = ParseState()
@@ -170,7 +175,7 @@ class Parser:
             self.next()
             return p_state.success(IDNode(token))
 
-        return p_state.fail(NotImplementedError(f"'{self.current.type}' Atomic value is not implemented"))
+        return p_state.fail(NotImplementedError(f"'{self.current}' Atomic value is not implemented"))
 
     # ==========================================================
 
@@ -178,7 +183,8 @@ class Parser:
         p_state = ParseState()
         # pos_start = self.current.pos.start
 
-        # Check if the current token is a 'Variable'
+        # Check if the current token is a
+        # 'Variable' or 'Assign Operation'
         # Otherwise return a 'fail' state
         if isinstance(self.current, (VarToken, AssignAddToken, AssignSubToken, AssignMulToken, AssignDivToken)):
             base_token = self.current
@@ -186,7 +192,7 @@ class Parser:
         
             if not isinstance(self.current, IDToken):
                 return p_state.fail(
-                    InvalidSyntaxError("No 'IDToken' was specified")
+                    InvalidSyntaxError("No 'Identifier' was specified")
                 )
             
             id_node = IDNode(self.current)
@@ -224,7 +230,7 @@ class Parser:
 
             self.next()
             
-            arg_nodes = p_state.add(self.func_args())
+            arg_nodes = p_state.add(self.func_params())
             if p_state.failed(): return p_state
 
             if not isinstance(self.current, ParCloseToken):
@@ -260,18 +266,18 @@ class Parser:
 
         return p_state.fail(InvalidSyntaxError("Expected '=|'"))
     
-    def func_args(self, args: Optional[List] = None):
+    def func_params(self, params: Optional[List] = None):
         p_state = ParseState()
-        args = list() if args is None else args
+        params = list() if params is None else params
 
         if isinstance(self.current, IDToken):
-            args += [ParamNode(self.current)]
+            params += [ParamNode(self.current)]
             self.next()
 
             if isinstance(self.current, IDToken):
                 return p_state.fail(InvalidSyntaxError("Expected ','"))
 
-            return self.func_args(args)
+            return self.func_params(params)
         
         elif isinstance(self.current, CommaToken):
             self.next()
@@ -281,9 +287,9 @@ class Parser:
                     InvalidSyntaxError("Expected 'parameter identifier' after ','")
                 )
 
-            return self.func_args(args)
+            return self.func_params(params)
 
-        return p_state.success(ListNode(args))
+        return p_state.success(ListNode(params))
     
     def func_body(self, nodes: Optional[List] = None):
         p_state = ParseState()
@@ -312,6 +318,105 @@ class Parser:
         if p_state.failed(): return p_state
 
         return self.func_body(nodes + [statement])
+
+    def func_args(self, args: Optional[List] = None):
+        p_state = ParseState()
+        args = list() if args is None else args
+
+        if isinstance(self.current, (IntegerToken, FloatToken, StringToken, IDToken)):
+            arg = p_state.add(self.atom())
+            if p_state.failed(): return p_state
+
+            args += [arg]
+
+            if not isinstance(self.current, (CommaToken, ParCloseToken)):
+                return p_state.fail(InvalidSyntaxError("Expected ')', ','"))
+
+            return self.func_args(args)
+        
+        elif isinstance(self.current, CommaToken):
+            self.next()
+
+            if isinstance(self.current, CommaToken):
+                return p_state.fail(
+                    InvalidSyntaxError("Expected 'value' after ','")
+                )
+
+            return self.func_args(args)
+
+        return p_state.success(ListNode(args))
+
+    def func_call(self):
+        p_state = ParseState()
+        base_token = self.current
+
+        if isinstance(self.current, CallToken):
+            self.next()
+
+        # Look for the id/name of the function to call
+        if not isinstance(self.current, IDToken):
+            return p_state.fail(
+                InvalidSyntaxError("Expected 'name' of function to call")
+            )
+        
+        id_node = IDNode(self.current)
+        self.next()
+
+        if not isinstance(self.current, ParOpenToken):
+            return p_state.fail(InvalidSyntaxError("Expected '('"))
+
+        self.next()
+        
+        # Process the 'function arguments'
+        arg_nodes = p_state.add(self.func_args())
+        if p_state.failed(): return p_state
+
+        if not isinstance(self.current, ParCloseToken):
+            return p_state.fail(InvalidSyntaxError("Expected ')'"))
+
+        self.next()
+
+        # If any specification, about were to
+        # store the 'returned result' of the 'call',
+        # is specified, then continue the parsing
+        if not isinstance(self.current, VarToken):
+            return p_state.success(
+                CallNode(
+                    id=id_node,
+                    args=arg_nodes,
+                    result=None,
+                    token=base_token
+                )
+            )
+        
+        var_token = self.current
+        
+        self.next()
+
+        if not isinstance(self.current, IDToken):
+            return p_state.fail(
+                InvalidSyntaxError(
+                    "Expected 'Identifier' to store the returned value of the function in"
+                )
+            )
+        
+        result_node = IDNode(self.current)
+
+        self.next()
+
+        if not isinstance(self.current, (NewLineToken, EOFToken)):
+            return p_state.fail(
+                InvalidSyntaxError(f"Can't put '{self.current}' after function call")
+            )
+        
+        return p_state.success(
+            CallNode(
+                id=id_node, 
+                args=arg_nodes, 
+                result=VarNode(id=result_node, value=None, token=var_token), 
+                token=base_token
+            )
+        )
 
     # ==========================================================
 

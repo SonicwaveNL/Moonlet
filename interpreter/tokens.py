@@ -31,7 +31,7 @@ class FloatToken(Token):
 class StringToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
         super().__init__(value, pos)
-        self.expr = "(\'{1}\w+\'{1}|\"{1}\w+\"{1})"
+        self.expr = "(\'{1}[^\']+\'{1}|\"{1}[^\"]+\"{1})"
 
 class IDToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
@@ -173,6 +173,11 @@ class CodeBlockToken(Token):
         super().__init__(value, pos)
         self.expr = "\=\{"
 
+class CallToken(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__(value, pos)
+        self.expr = "\=\@"
+
 class IfToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
         super().__init__(value, pos)
@@ -182,6 +187,16 @@ class ReturnToken(Token):
     def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
         super().__init__(value, pos)
         self.expr = "\=\>"
+
+class PrintToken(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__(value, pos)
+        self.expr = "\=\!"
+
+class CommentToken(Token):
+    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+        super().__init__(value, pos)
+        self.expr = "\=\#"
 
 
 class TokenTypes(Enum):
@@ -228,9 +243,12 @@ class TokenTypes(Enum):
     STATEMENTS = [
         VarToken,
         FuncToken,
+        CallToken,
         CodeBlockToken,
         IfToken,
         ReturnToken,
+        PrintToken,
+        CommentToken,
     ]
 
     OPERATORS = MATH_OPS + COMPERATIONS + ASSIGNMENT_OPS
