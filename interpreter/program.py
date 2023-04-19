@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Optional, List, Union, Any
 from functools import reduce
+from copy import deepcopy
 from .tokens import (
     Token,
     IntegerToken, FloatToken, StringToken, IDToken,
@@ -23,6 +24,7 @@ from .nodes import (
     ReturnNode,
     FuncNode,
     CallNode,
+    PrintNode,
 )
 from .errors import (
     Error,
@@ -64,6 +66,8 @@ class Empty:
     def __truediv__(self, rhs):
         return None   
 
+    def copy(self) -> Empty:
+        return Empty(self.node)
 
 class Value:
     
@@ -72,27 +76,37 @@ class Value:
         self.node = node
 
     def __str__(self) -> str:
-        return f"Value({self.value!r})"    
+        return repr(self.value)   
 
     def __repr__(self) -> str:
-        return f"Value(values={self.value!r}, node={self.node!r})"
+        return f"Value(value={self.value!r}, node={self.node!r})"
     
-    def __add__(self, rhs):
+    def __add__(self, rhs) -> Union[Value, None]:
         if isinstance(rhs.node, type(self.node)):
-            return Value(self.node.value + rhs.node.value, self.node)
+            lhs = deepcopy(self)
+            lhs.value = lhs.value + rhs.node.value
+            return lhs
 
-    def __sub__(self, rhs):
+    def __sub__(self, rhs) -> Union[Value, None]:
         if not isinstance(self.node, StringNode) and isinstance(rhs.node, type(self.node)):
-            return Value(self.node.value - rhs.node.value, self.node)
+            lhs = deepcopy(self)
+            lhs.value = lhs.value - rhs.node.value
+            return lhs
 
-    def __mul__(self, rhs):
+    def __mul__(self, rhs) -> Union[Value, None]:
         if not isinstance(self.node, StringNode) and isinstance(rhs.node, type(self.node)):
-            return Value(self.node.value * rhs.node.value, self.node)
+            lhs = deepcopy(self)
+            lhs.value = lhs.value * rhs.node.value
+            return lhs
 
-    def __truediv__(self, rhs):
+    def __truediv__(self, rhs) -> Union[Value, None]:
         if not isinstance(self.node, StringNode) and isinstance(rhs.node, type(self.node)):
-            return Value(self.node.value / rhs.node.value, self.node)        
+            lhs = deepcopy(self)
+            lhs.value = lhs.value / rhs.node.value
+            return lhs
 
+    def copy(self) -> Value:
+        return deepcopy(self)
 
 class Function:
     
@@ -125,6 +139,8 @@ class Function:
 
         return list(map(lambda x: x.value, self.node.args.items))
 
+    def copy(self) -> Function:
+        return deepcopy(self)
 
 class Scope:
 
@@ -143,14 +159,13 @@ class Scope:
     def exist(self, key: str) -> bool:
         return (key in self.args)
 
-    def set(self, key: str, value: Union[Value, Function]):
+    def set(self, key: str, value: Union[Value, Function, Empty]):
         self.args[key] = value
 
-    def get(self, key: str) -> Union[Value, Function, None]:
-        if self.exist(key):
-            return self.args.get(key, None)
+    def get(self, key: str) -> Union[Value, Function, Empty, None]:
+        return deepcopy(self.args.get(key, None))
     
-    def remove(self, key: str) -> Union[Value, Function, None]:
+    def remove(self, key: str) -> Union[Value, Function, Empty, None]:
         return self.args.pop(key, None)
 
     def format_args(self):
@@ -248,8 +263,18 @@ class Program:
 
         elif isinstance(node, CallNode):
             return p_state.run(self.exec_call_node(node, scope))
+        
+        # ======================================================
 
-        return p_state.fail(NotImplementedError(f"Method for function '{type(node).__name__}' is not implemented", node.token.pos))
+        elif isinstance(node, PrintNode):
+            return p_state.run(self.exec_print_node(node, scope))
+
+        return p_state.fail(
+            NotImplementedError(
+                f"Method for function '{type(node).__name__}' is not implemented",
+                node.token.pos
+            )
+        )
 
     def iter(self, items: List[BaseNode], scope: Scope, output: Optional[List] = None):
         p_state = ProgramState()
@@ -274,9 +299,15 @@ class Program:
         p_state = ProgramState()
 
         if not scope.exist(node.value):
-            return p_state.fail(RunTimeError(f"'{node.value}' doesn't exist within scope '{scope.name}'"))
+            return p_state.fail(
+                RunTimeError(
+                    f"'{node.value}' doesn't exist within scope '{scope.name}'",
+                    node.token.pos
+                )
+            )
         
-        return p_state.success(scope.get(node.value))
+        value = scope.get(node.value)
+        return p_state.success(value)
 
     # ==========================================================
 
@@ -334,22 +365,22 @@ class Program:
         # Perform the operation, based on the oper Token
         if isinstance(node.token, AssignAddToken):
             result = lhs + rhs
-            if result is None: 
+            if not isinstance(result, Value): 
                 return p_state.fail(InvalidSyntaxError(f"Can't add {lhs} to {rhs}"))
 
         elif isinstance(node.token, AssignSubToken):
-            result = lhs - rhs    
-            if result is None: 
+            result = lhs - rhs
+            if not isinstance(result, Value): 
                 return p_state.fail(InvalidSyntaxError(f"Can't substract {lhs} from {rhs}"))
         
         elif isinstance(node.token, AssignMulToken):
             result = lhs * rhs
-            if result is None: 
+            if not isinstance(result, Value): 
                 return p_state.fail(InvalidSyntaxError(f"Can't multiply {lhs} by {rhs}"))
         
         elif isinstance(node.token, AssignDivToken):
             result = lhs / rhs
-            if result is None: 
+            if not isinstance(result, Value): 
                 return p_state.fail(InvalidSyntaxError(f"Can't devide {lhs} from {rhs}"))
 
         else:
@@ -439,7 +470,7 @@ class Program:
             return p_state.fail(
                 RunTimeError(f"Can't call '{node.name}' as it isn't a function")
             )
-        
+                
         # Check if both the arguments
         # of the 'call' and the 'function'
         # are equal in size/amount
@@ -456,8 +487,9 @@ class Program:
         # Execute the expressions of
         # the param arguments of the
         # 'call', to build the input
-        # params if the 'function'
+        # params of the 'function'
         call_args = p_state.add(self.exec_list_node(node.args, scope))
+        if p_state.failed(): return p_state
 
         # Stich everything back togeter
         # to define the input params
@@ -471,7 +503,7 @@ class Program:
         _ = p_state.add(self.exec_list_node(func.body, call_scope))
         if p_state.failed(): return p_state
         
-        self.__show(node, call_scope)
+        # self.__show(node, call_scope)
         
         # If any specification, about were to
         # store the 'returned result' of the 'call',
@@ -499,4 +531,35 @@ class Program:
                 
             scope.set(node.result.name, call_scope.result)
 
-        return p_state.success(call_scope)
+        return p_state.success(call_scope.result)
+    
+    # ==========================================================
+
+    def exec_print_node(self, node: PrintNode, scope: Scope) -> ProgramState:
+        p_state = ProgramState()
+
+        if not isinstance(node.to_print, (NumberNode, StringNode, IDNode)):
+            return p_state.fail(
+                RunTimeError(f"Can't print '{node.to_print.value}'", node.token.pos)
+            )
+        
+        print_value = p_state.add(self.exec(node.to_print, scope))
+        if p_state.failed(): return p_state
+
+        if not isinstance(print_value, (Value, Empty)):
+            if hasattr(print_value, 'token'):
+                return p_state.fail(
+                    RunTimeError(f"Can't print '{print_value.value}'", print_value.token.pos)
+                )
+            
+            return p_state.fail(
+                RunTimeError(
+                    f"Can't print '{print_value.value}'", 
+                    print_value.node.token.pos
+                )
+            )
+        
+        elif isinstance(print_value, Value):
+            print(print_value)
+
+        return p_state.success(print_value)

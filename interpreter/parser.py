@@ -8,6 +8,7 @@ from .tokens import (
     EqualToken, GreaterToken, GreaterOrEqualToken, LessToken, LessOrEqualToken,
     AssignAddToken, AssignSubToken, AssignMulToken, AssignDivToken,
     VarToken, FuncToken, CodeBlockToken, CallToken, IfToken, ReturnToken,
+    PrintToken, CommentToken,
 )
 from .nodes import (
     NumberNode,
@@ -20,6 +21,7 @@ from .nodes import (
     ReturnNode,
     FuncNode,
     CallNode,
+    PrintNode,
 )
 from .errors import (
     Error,
@@ -134,6 +136,16 @@ class Parser:
         
         elif isinstance(self.current, CallToken):
             result = p_state.add(self.func_call())
+            if p_state.failed(): return p_state
+            return p_state.success(result)
+        
+        elif isinstance(self.current, PrintToken):
+            result = p_state.add(self.print_expr())
+            if p_state.failed(): return p_state
+            return p_state.success(result)
+        
+        elif isinstance(self.current, CommentToken):
+            result = p_state.add(self.comment())
             if p_state.failed(): return p_state
             return p_state.success(result)
            
@@ -417,6 +429,54 @@ class Parser:
                 token=base_token
             )
         )
+
+    # ==========================================================
+
+    def print_expr(self):
+        p_state = ParseState()
+
+        if isinstance(self.current, PrintToken):
+            base_token = self.current
+
+            self.next()
+
+            if not isinstance(self.current, (IntegerToken, FloatToken, StringToken, IDToken)):
+                return p_state.fail(
+                    InvalidSyntaxError(f"Expected 'int', 'float', 'string', 'variable'")
+                )
+            
+            to_print_node = p_state.add(self.expr())
+            if p_state.failed(): return p_state
+            
+            if not isinstance(self.current, (NewLineToken, EOFToken)):
+                return p_state.fail(
+                    InvalidSyntaxError(f"Expected 'newline', 'EOF'")
+                )
+            
+            return p_state.success(PrintNode(to_print_node, base_token))
+
+        return p_state.fail(
+            InvalidSyntaxError(f"Expected '=!'")
+        )
+
+    def comment(self):
+        p_state = ParseState()
+        base_token = self.current
+
+        if isinstance(self.current, CommentToken):
+
+            self.next()
+
+            if not isinstance(self.current, (NewLineToken, EOFToken)):
+                return p_state.fail(
+                    InvalidSyntaxError(f"Expected 'newline', 'EOF'")
+                )
+            
+            self.next()
+            
+            return p_state.success(CommentNode(base_token))
+
+        return p_state.fail(InvalidSyntaxError(f"Expected '=#'"))
 
     # ==========================================================
 

@@ -35,6 +35,11 @@ class Lexer:
             return self.tokenize(text[1:])
         
         token, rest = self.match_expr(text)
+        
+        # Ignore Comment lines
+        if isinstance(token, CommentToken):
+            return self.tokenize(rest)
+
         return [token] + self.tokenize(rest)
         
     def match_expr(self, text):
@@ -121,9 +126,10 @@ class Lexer:
                     found = token(part, self.pos.copy(size - 1))
                     rest, _, comment_size = self.build_part(
                         text=rest,
-                        stops=["\n", "'", '"']
+                        stops=["\n"]
                     )
                     self.pos.next(size + comment_size - 1)
+                    found.pos.end += comment_size
                     return found, rest
                 
                 # Else if the token is a StringToken,

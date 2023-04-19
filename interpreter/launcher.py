@@ -83,5 +83,6 @@ class Launcher:
             print(f"\n{prog_result.error}")
             print(f"{'='*61}")
 
+        print(f"{'='*61}")
         print(prog_scope.format_args())
         # print(prog_scope)

@@ -8,6 +8,8 @@ from .tokens import (
     EqualToken, GreaterToken, GreaterOrEqualToken, LessToken, LessOrEqualToken,
     AssignAddToken, AssignSubToken, AssignMulToken, AssignDivToken,
     VarToken, FuncToken, CodeBlockToken, CallToken, IfToken, ReturnToken,
+    PrintToken, CommentToken
+
 )
 
 # Base
@@ -151,3 +153,18 @@ class CallNode(BaseNode):
     @property
     def name(self) -> str:
         return self.id.value
+    
+class PrintNode(BaseNode):
+    def __init__(self, to_print: Union[NumberNode, StringNode, IDNode], token: PrintToken):
+        super().__init__(token)
+        self.to_print = to_print
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}({self.value!r})"    
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(to_print={self.to_print!r}, token={self.token!r})"
+    
+    @property
+    def value(self): 
+        return self.to_print.value
