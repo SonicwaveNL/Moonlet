@@ -1,0 +1,27 @@
+=: name "abc"
+=+ name "def"
+
+=: num_1 3
+=: num_2 13
+=: num_3 23
+=: num_4 33
+
+=+ num_1 6
+=- num_2 5
+=* num_3 4
+=/ num_4 3
+
+=: flo_1 1.1
+=: flo_2 2.2
+=: flo_3 3.3
+=: flo_4 4.4
+
+=+ flo_1 1.3
+=- flo_2 1.2
+=* flo_3 1.1
+=/ flo_4 2.2
+
+=| ice(a, b) ={
+    =+ a b
+    => a
+}

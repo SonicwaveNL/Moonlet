@@ -1,11 +1,27 @@
 from typing import Optional, Union
 from enum import Enum
+from interpreter.position import Position
 from .position import Position
 
 
-# Base
 class Token:
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Default base of a Token.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         self.value = value
         self.pos = pos
         self.expr = None
@@ -17,193 +33,832 @@ class Token:
         return f"{self.__class__.__name__}(value={self.value!r}, pos={self.pos!r})"
 
 
-# Data types
 class IntegerToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing an Integer.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "([-+]?\d+)"
 
+
 class FloatToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Float.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "([-+]?\d*\.\d+)"
 
+
 class StringToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a String.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
-        self.expr = "(\'{1}[^\']+\'{1}|\"{1}[^\"]+\"{1})"
+        self.expr = "('{1}[^']+'{1}|\"{1}[^\"]+\"{1})"
+
 
 class IDToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Identifier of a variable.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "(\w)+"
 
 
-# Arithmetic Operators
+class BooleanToken(Token):
+    """Token representing a Boolean.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
+        super().__init__(value, pos)
+        self.expr = "(false|true)"
+
+
 class AddToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing 2 values added to eachother.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+
+    Example:
+        ```
+        x + y
+        ```
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\+{1}"
 
+
 class SubToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing 2 values substracted from eachother.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+
+    Example:
+        ```
+        x - y
+        ```
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\-{1}"
 
+
 class MulToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing 2 values multiplied by eachother.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+
+    Example:
+        ```
+        x * y
+        ```
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\*{1}"
 
+
 class DivToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing 2 values divided by eachother.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+
+    Example:
+        ```
+        x / y
+        ```
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\/{1}"
 
 
-# Characters
 class CommaToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing seperation comma.
+
+    This is mainly used with parameter specification.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+
+    Example:
+        ```
+        (x, y)
+        ```
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\,{1}"
 
+
 class ColonToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Colon.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\:{1}"
 
+
 class ParOpenToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing an opening parenthesis.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\({1}"
 
+
 class ParCloseToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a closing parenthesis.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\){1}"
 
+
 class BracketOpenToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing an opening bracket.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\{{1}"
 
+
 class BracketCloseToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a closing bracket.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\}{1}"
 
+
 class NewLineToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Newline.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\n{1}"
 
+
 class EOFToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a EOF (End of File).
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\s{1}"
 
 
-# Comparison Operators
 class EqualToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Equal sign.
+
+    This is mainly used within an if-statement.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\="
 
+
 class NotEqualToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Not Equal sign.
+
+    This is mainly used within an if-statement.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\!\="
 
+
 class GreaterToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Greater Than sign.
+
+    This is mainly used within an if-statement.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\>"
 
+
 class GreaterOrEqualToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Greater or Equal.
+
+    This is mainly used within an if-statement.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\>\="
 
+
 class LessToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Less sign.
+
+    This is mainly used within an if-statement.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\<"
 
+
 class LessOrEqualToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Less or Equal sign.
+
+    This is mainly used within an if-statement.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\<\="
 
 
-# Assignment Operators
 class AssignAddToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing an Add and Assign operation.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\+"
 
+
 class AssignSubToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Substract and Assign operation.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\-"
 
+
 class AssignMulToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Multiply and Assign operation.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\*"
 
+
 class AssignDivToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Divide and Assign operation.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\/"
 
 
-# Statements
 class VarToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Variable assignment.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\:"
 
+
 class FuncToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Function definition.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\|"
 
+
 class CodeBlockToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Code Block of a function.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\{"
 
+
 class CallToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Function Call.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\@"
 
+
 class IfToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a If-statement.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\?"
 
+
 class ReturnToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Return statement.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\>"
 
+
 class PrintToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Print operation.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\!"
 
+
 class CommentToken(Token):
-    def __init__(self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None):
+    """Token representing a Comment.
+
+    Attributes:
+        value: Intial value of the Token.
+        pos: Position of the Token.
+        expr: Expression to perform the regex with.
+    """
+
+    def __init__(
+        self, value: Union[int, float, str, None] = None, pos: Optional[Position] = None
+    ):
+        """Initializes the instance based on value of the token.
+
+        Args:
+            value: Initial value of the Token. Defaults to None.
+            pos: Position of the Token. Defaults to None.
+        """
         super().__init__(value, pos)
         self.expr = "\=\#"
 
 
 class TokenTypes(Enum):
+    """Enumeration of the different Token Types
+
+    Attributes:
+        DATA_TYPES: All data tokens.
+        MATH_OPS: All mathmatical tokens.
+        SINGLE_CHARS: All single character tokens.
+        COMPERATIONS: All comperation tokens.
+        ASSIGNMENT_OPS: All assignment operational tokens.
+        STATEMENTS: All statement tokens.
+        OPERATORS: All operations tokens.
+    """
 
     DATA_TYPES = [
         FloatToken,
         IntegerToken,
+        BooleanToken,
         StringToken,
         IDToken,
     ]
@@ -227,6 +882,7 @@ class TokenTypes(Enum):
 
     COMPERATIONS = [
         EqualToken,
+        NotEqualToken,
         GreaterToken,
         GreaterOrEqualToken,
         LessToken,

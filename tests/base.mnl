@@ -1,0 +1,17 @@
+=: x 3
+=: y 9
+=: z "abc def"
+
+=? x == y =: j_1
+=? (x != y) =: j_2
+
+=? x < 4 =! "TRUE" : =! "FALSE"
+=? x < 4 =! "TRUE" : =! "FALSE" 
+=? (3 > y) =! "TRUE" : =! "FALSE" 
+
+=? (x == y) ={
+    =! "Nope, not equal!"
+    =! x
+    =! y
+    =! '================'
+}

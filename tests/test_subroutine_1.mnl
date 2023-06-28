@@ -1,0 +1,14 @@
+=| odd (n) ={
+    =? n == 0 => false
+    =- n 1
+    => even (n)
+}
+
+=| even (n) ={
+    =? n == 0 => true
+    =- n 1
+    => odd (n)
+}
+
+=@ odd (10) =: awnser_a
+=@ even (10) =: awnser_b

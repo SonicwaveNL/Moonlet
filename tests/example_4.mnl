@@ -1,0 +1,5 @@
+=: the_truth true
+=: a_lie false
+=: awnser false
+
+=? the_truth == a_lie =: awnser

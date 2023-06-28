@@ -1,0 +1,37 @@
+=: x 3
+=: y 1.3
+=: z "abc def"
+
+=+ x 6
+=# =- x 2
+=# =* x 3
+=# =/ x 2
+=# 
+=# =| sum(a, b) ={
+=#     =+ a b
+=#     => a
+=# }
+=# 
+=# =@ sum(x, y) =: j
+=# =@ sum(x, y) =: a
+
+=: j 1000
+
+=| wrong(x, y) ={
+    =+ x y
+    => x
+}
+
+=@ wrong(j, x) =: a
+=! a
+=! x
+
+=# =! "Everything is awesome!"
+=# =! 123
+=# =! 19.99
+=# =! x
+
+=# This is an awesome comment
+
+=# =! y
+=# =! z

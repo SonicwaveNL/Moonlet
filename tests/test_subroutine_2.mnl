@@ -1,0 +1,17 @@
+=| sommig (n, result) ={
+    =? (n < 1) => result
+    =+ result n
+    =- n 1
+    => sommig(n, result)
+}
+
+=@ sommig (1, 0) =: result_1
+=@ sommig (2, 0) =: result_2
+=@ sommig (3, 0) =: result_3
+=@ sommig (4, 0) =: result_4
+=@ sommig (5, 0) =: result_5
+=@ sommig (6, 0) =: result_6
+=@ sommig (7, 0) =: result_7
+=@ sommig (8, 0) =: result_8
+=@ sommig (9, 0) =: result_9
+=@ sommig (10, 0) =: result_10

@@ -1,26 +1,32 @@
-from typing import Optional, List, Tuple
+from __future__ import annotations
+from typing import Optional, List, Any, Union
+from copy import deepcopy
 from .tokens import (
-    Token,
-    IntegerToken, FloatToken, StringToken, IDToken,
+    IntegerToken, FloatToken, StringToken, IDToken, BooleanToken,
     CommaToken, ColonToken, ParOpenToken, ParCloseToken,
-    BracketOpenToken, BracketCloseToken, NewLineToken, EOFToken,
+    BracketCloseToken, NewLineToken, EOFToken,
     AddToken, SubToken, MulToken, DivToken,
-    EqualToken, GreaterToken, GreaterOrEqualToken, LessToken, LessOrEqualToken,
+    EqualToken, NotEqualToken, GreaterToken, 
+    GreaterOrEqualToken, LessToken, LessOrEqualToken,
     AssignAddToken, AssignSubToken, AssignMulToken, AssignDivToken,
     VarToken, FuncToken, CodeBlockToken, CallToken, IfToken, ReturnToken,
-    PrintToken, CommentToken,
+    PrintToken,
 )
 from .nodes import (
     NumberNode,
     StringNode,
     IDNode,
+    BooleanNode,
     ListNode,
     ParamNode,
+    CompareOpNode,
     AssignOpNode,
+    BinaryOpNode,
     VarNode,
     ReturnNode,
     FuncNode,
     CallNode,
+    ConditionsNode,
     PrintNode,
 )
 from .errors import (
@@ -30,21 +36,31 @@ from .errors import (
 )
 
 class ParseState:
-    
-    def __init__(self):
-        self.node = None
-        self.error = None
+
+    def __init__(
+        self,
+        node: Optional[Any] = None, 
+        error: Union[ParseState, Error, None] = None
+    ) -> None:
+        self.node = node
+        self.error = error
+
+    def __str__(self) -> str:
+        if self.error is not None:
+            return f"ParseState({self.error})"
+        
+        return f"ParseState({self.node})"
+
+    def __repr__(self) -> str:
+        return f"ParseState(node={self.node!r}, error={self.error!r})"
 
     def add(self, state):
         if state.error is not None:
             self.error = state.error
-        return state.node
+        return deepcopy(state.node)
     
-    def prev(self):
-        pass
-
     def success(self, node):
-        self.node = node
+        self.node = deepcopy(node)
         return self
     
     def fail(self, error: Error):
@@ -54,23 +70,32 @@ class ParseState:
     def failed(self) -> bool:
         return self.error is not None
 
+    def run(self, state):
+        node = self.add(state)
+        if self.failed(): return self
+        return self.success(node)
+
 
 class Parser:
 
     def __init__(self, tokens):
         self.tokens = tokens
         self.index = -1
+        self.previous_index = -2
         self.current = None
+        self.previous = None
 
     def set_current(self):
         if self.index >= 0 and self.index < len(self.tokens):
             self.current = self.tokens[self.index]
+            self.previous = self.tokens[self.previous_index]
 
     def next(self):
         self.index += 1
+        self.previous_index += 1
         self.set_current()
 
-        # print(f"NEXT[{self.index:>2}] {'>>': ^4} {self.current}")
+        print(f"NEXT[{self.index:>2}] {'>>': ^4} {self.current}")
         
         return self.current
 
@@ -116,39 +141,26 @@ class Parser:
         # pos_start = self.current.pos.start
         
         if isinstance(self.current, (VarToken, AssignAddToken, AssignSubToken, AssignMulToken, AssignDivToken)):
-            result = p_state.add(self.assign_oper())
-            if p_state.failed(): return p_state
-            return p_state.success(result)
+            return p_state.run(self.assign_oper())
         
         elif isinstance(self.current, FuncToken):
-            result = p_state.add(self.func_expr())
-            if p_state.failed(): return p_state
-            return p_state.success(result)
+            return p_state.run(self.func_expr())
 
         elif isinstance(self.current, ReturnToken):
-            return_token = self.current
-            
-            self.next()
-
-            result = p_state.add(self.atom())
-            if p_state.failed(): return p_state
-            return p_state.success(ReturnNode(result, return_token))
+            return p_state.run(self.func_return())
         
         elif isinstance(self.current, CallToken):
-            result = p_state.add(self.func_call())
-            if p_state.failed(): return p_state
-            return p_state.success(result)
+            return p_state.run(self.func_call())
         
         elif isinstance(self.current, PrintToken):
-            result = p_state.add(self.print_expr())
-            if p_state.failed(): return p_state
-            return p_state.success(result)
+            return p_state.run(self.print_expr())
         
-        elif isinstance(self.current, CommentToken):
-            result = p_state.add(self.comment())
-            if p_state.failed(): return p_state
-            return p_state.success(result)
-           
+        elif isinstance(self.current, IfToken):
+            return p_state.run(self.if_statement())
+        
+        # elif isinstance(self.current, (EqualToken, NotEqualToken, GreaterToken, GreaterOrEqualToken, LessToken, LessOrEqualToken)):
+        #     return p_state.run(self.if_statement())
+        
         return p_state.fail(NotImplementedError(f"'{self.current}' Statement is not implemented"))
             
     def expr(self):
@@ -168,7 +180,6 @@ class Parser:
         
         node = p_state.add(self.atom())
         if p_state.failed(): return p_state
-
         return p_state.success(node)
 
     def atom(self):
@@ -177,15 +188,19 @@ class Parser:
 
         if isinstance(self.current, IntegerToken) or isinstance(self.current, FloatToken):
             self.next()
-            return p_state.success(NumberNode(token))
+            return p_state.run(self.bin_oper(NumberNode(token)))
         
         elif isinstance(self.current, StringToken):
             self.next()
-            return p_state.success(StringNode(token))
+            return p_state.run(self.bin_oper(StringNode(token)))
         
         elif isinstance(self.current, IDToken):
             self.next()
-            return p_state.success(IDNode(token))
+            return p_state.run(self.bin_oper(IDNode(token)))
+        
+        elif isinstance(self.current, BooleanToken):
+            self.next()
+            return p_state.run(self.bin_oper(BooleanNode(token)))
 
         return p_state.fail(NotImplementedError(f"'{self.current}' Atomic value is not implemented"))
 
@@ -210,8 +225,14 @@ class Parser:
             id_node = IDNode(self.current)
             self.next()
 
-            expr = p_state.add(self.expr())
-            if p_state.failed(): return p_state
+            # Check for a 'binary operation'
+            if isinstance(self.current, (AddToken, SubToken, MulToken, DivToken)):
+                expr = p_state.add(self.bin_oper(id_node))
+                if p_state.failed(): return p_state
+
+            else:
+                expr = p_state.add(self.expr())
+                if p_state.failed(): return p_state
 
             self.next()
 
@@ -255,14 +276,15 @@ class Parser:
             
             start_block = self.current
             
-            self.next()
+            # self.next()
 
-            if not isinstance(self.current, NewLineToken):
-                return p_state.fail(InvalidSyntaxError("Expected a 'Newline' after '={'"))
+            # if not isinstance(self.current, NewLineToken):
+            #     return p_state.fail(InvalidSyntaxError("Expected a 'Newline' after '={'"))
             
             self.next()
             
-            body_nodes = p_state.add(self.func_body())
+            # body_nodes = p_state.add(self.func_body())
+            body_nodes = p_state.add(self.code_block())
             if p_state.failed(): return p_state
             
             if not isinstance(self.current, BracketCloseToken):
@@ -324,6 +346,7 @@ class Parser:
 
             self.next()
 
+
             return p_state.success(ListNode(nodes + [statement]))
 
         statement = p_state.add(self.statement())
@@ -358,21 +381,27 @@ class Parser:
 
         return p_state.success(ListNode(args))
 
-    def func_call(self):
+    def func_call(self, id_node: Optional[IDNode] = None):
         p_state = ParseState()
         base_token = self.current
+        is_inline = False
 
         if isinstance(self.current, CallToken):
             self.next()
 
         # Look for the id/name of the function to call
-        if not isinstance(self.current, IDToken):
+        if id_node is None and not isinstance(self.current, IDToken):
             return p_state.fail(
                 InvalidSyntaxError("Expected 'name' of function to call")
             )
         
-        id_node = IDNode(self.current)
-        self.next()
+        elif id_node is None:
+            id_node = IDNode(self.current)
+            self.next()
+
+        else:
+            base_token = id_node.token
+            is_inline = True
 
         if not isinstance(self.current, ParOpenToken):
             return p_state.fail(InvalidSyntaxError("Expected '('"))
@@ -397,6 +426,7 @@ class Parser:
                     id=id_node,
                     args=arg_nodes,
                     result=None,
+                    inline=is_inline,
                     token=base_token
                 )
             )
@@ -425,10 +455,205 @@ class Parser:
             CallNode(
                 id=id_node, 
                 args=arg_nodes, 
-                result=VarNode(id=result_node, value=None, token=var_token), 
+                result=VarNode(id=result_node, value=None, token=var_token),
+                inline=is_inline,
                 token=base_token
             )
         )
+
+    def func_return(self):
+        p_state = ParseState()
+        base_token = self.current
+
+        self.next()
+
+        result = p_state.add(self.atom())
+        if p_state.failed(): return p_state
+
+        if isinstance(self.current, ParOpenToken):
+            result = p_state.add(self.func_call(result))
+            if p_state.failed(): return p_state
+
+        return p_state.success(ReturnNode(result, base_token))
+
+    # ==========================================================
+
+    def code_block(self, nodes: Optional[List] = None):
+        p_state = ParseState()
+        nodes = list() if nodes is None else nodes
+
+        if ( 
+            isinstance(self.current, EOFToken) 
+            or self.index >= len(self.tokens)
+        ):
+            return p_state.fail(InvalidSyntaxError("Expected '}'"))
+
+        elif isinstance(self.current, NewLineToken):
+            self.next()
+            return self.code_block(nodes)
+        
+        elif isinstance(self.current, BracketCloseToken):
+            return p_state.success(ListNode(nodes))
+
+        statement = p_state.add(self.statement())
+        if p_state.failed(): return p_state
+
+        return self.code_block(nodes + [statement])
+
+    # ==========================================================
+
+    def if_statement(self):
+        p_state = ParseState()
+
+        if isinstance(self.current, IfToken):
+            base_token = self.current
+            
+            self.next()
+
+            # Build conditions
+            condition = p_state.add(self.condition())
+            if p_state.failed(): return p_state
+
+            # Build the 'result' of the conditions 
+            # (when the conditions are True)
+            result_token = self.current
+            result_node = None
+
+            # If the 'result' should be stored
+            # within a 'variable', then parse
+            # the rest while building the 'VarNode'
+            if isinstance(self.current, VarToken):
+                self.next()
+                
+                if not isinstance(self.current, IDToken):
+                    return p_state.fail(
+                        InvalidSyntaxError(
+                            "Expected 'Identifier' to store the result of the if-statement in"
+                        )
+                    )
+                
+                id_node = IDNode(self.current)
+                result_node = VarNode(id=id_node, value=None, token=result_token)
+                self.next()
+
+            # Or if the 'result' defines a 'code block',
+            # then parse the 'body' of the 'result'
+            # as a 'ListNode' (list of seperate nodes)
+            elif isinstance(self.current, CodeBlockToken):
+                self.next()
+                result_node = p_state.add(self.code_block())
+                if p_state.failed(): return p_state
+                self.next()
+
+            else:
+                result_node = p_state.add(self.statement())
+                if p_state.failed(): return p_state
+            
+            # Build the 'other' of the conditions
+            # (when the conditions are False),
+            # when it's defined after the 'result'
+            # as a ':' (colon symbol)
+            if isinstance(self.current, ColonToken):
+                self.next()
+
+                if isinstance(self.current, NewLineToken):
+                    return p_state.fail(
+                        InvalidSyntaxError(
+                            f"No 'False' or 'right-hand side' action was specified for if-statement"
+                        )
+                    )
+                
+                other_node = p_state.add(self.statement())
+                if p_state.failed(): return p_state
+                
+                return p_state.success(ConditionsNode(
+                        condition,
+                        result_node,
+                        other_node,
+                        base_token
+                    )
+                )
+
+            return p_state.success(ConditionsNode(
+                    condition,
+                    result_node,
+                    None, 
+                    base_token
+                )
+            )
+
+        return p_state.fail(
+            InvalidSyntaxError(f"Expected '=?'")
+        )
+    
+    def condition(self):
+        p_state = ParseState()
+        found_par_open = False
+
+        # Check if the current token is 
+        # a '(', which means that their 
+        # must be a ')' at the end
+        if isinstance(self.current, ParOpenToken):
+            found_par_open = True
+            self.next()
+
+        # Build the 'Left-hand side'
+        lhs = None
+
+        # First check if the current token 
+        # is a '(', which indicated a nested expression,
+        # or check if it's an atomic value,
+        # or else return a 'failed' state
+        if isinstance(self.current, ParOpenToken):
+            lhs = p_state.add(self.condition())
+        
+        elif isinstance(self.current, (IntegerToken, FloatToken, StringToken, IDToken)):
+            lhs = p_state.add(self.atom())
+
+        else:
+            return p_state.fail(
+                InvalidSyntaxError(f"Expected 'int', 'float', 'string', 'variable'")
+            )
+        
+        if p_state.failed(): return p_state
+        # self.next()
+
+        # Build the 'Operation'
+        if not isinstance(self.current, (EqualToken, NotEqualToken, GreaterToken, GreaterOrEqualToken, LessToken, LessOrEqualToken)):
+            return p_state.fail(
+                InvalidSyntaxError(f"Expected '==', '!=', '>', '>=', '<', '<='")
+            )
+        
+        expr = self.current
+        self.next()
+
+        # Build the 'Right-hand side'
+        rhs = None
+
+        # Again, first check if the current token 
+        # is a '(', which indicated a nested expression,
+        # or check if it's an atomic value,
+        # or else return a 'failed' state
+        if isinstance(self.current, ParOpenToken):
+            rhs = p_state.add(self.condition())
+        
+        elif isinstance(self.current, (IntegerToken, FloatToken, StringToken, IDToken)):
+            rhs = p_state.add(self.atom())
+
+        else:
+            return p_state.fail(
+                InvalidSyntaxError(f"Expected 'int', 'float', 'string', 'variable'")
+            )
+
+        # Look for a ')' when previously
+        # a '(' was found at the beginning
+        if found_par_open and not isinstance(self.current, ParCloseToken):
+            return p_state.fail(InvalidSyntaxError(f"Expected ')'"))
+        
+        elif found_par_open and isinstance(self.current, ParCloseToken):
+            self.next()
+        
+        return p_state.success(CompareOpNode(lhs, rhs, expr))
 
     # ==========================================================
 
@@ -448,10 +673,10 @@ class Parser:
             to_print_node = p_state.add(self.expr())
             if p_state.failed(): return p_state
             
-            if not isinstance(self.current, (NewLineToken, EOFToken)):
-                return p_state.fail(
-                    InvalidSyntaxError(f"Expected 'newline', 'EOF'")
-                )
+            # if not isinstance(self.current, (NewLineToken, EOFToken)):
+            #     return p_state.fail(
+            #         InvalidSyntaxError(f"Expected 'newline', 'EOF'")
+            #     )
             
             return p_state.success(PrintNode(to_print_node, base_token))
 
@@ -459,34 +684,18 @@ class Parser:
             InvalidSyntaxError(f"Expected '=!'")
         )
 
-    def comment(self):
-        p_state = ParseState()
-        base_token = self.current
-
-        if isinstance(self.current, CommentToken):
-
-            self.next()
-
-            if not isinstance(self.current, (NewLineToken, EOFToken)):
-                return p_state.fail(
-                    InvalidSyntaxError(f"Expected 'newline', 'EOF'")
-                )
-            
-            self.next()
-            
-            return p_state.success(CommentNode(base_token))
-
-        return p_state.fail(InvalidSyntaxError(f"Expected '=#'"))
-
     # ==========================================================
 
-    def bin_oper(self, lhs, ops, rhs=None):
+    def bin_oper(self, lhs: Union[NumberNode, StringNode, IDNode, BooleanNode]):
         p_state = ParseState()
-        
-        if rhs is None:
-            rhs = lhs
-        
-        left = p_state.add(lhs())
-        if p_state.failed(): return p_state
+        oper_token = self.current
 
-        return p_state.success(left)
+        if isinstance(self.current, (AddToken, SubToken, MulToken, DivToken)):
+            self.next()
+            rhs = p_state.add(self.atom())
+            if p_state.failed(): return p_state
+            return p_state.success(BinaryOpNode(lhs, rhs, oper_token))
+
+        return p_state.success(lhs)
+    
+    # ==========================================================
