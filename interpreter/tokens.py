@@ -169,6 +169,9 @@ class AddToken(Token):
         super().__init__(value, pos)
         self.expr = "\+{1}"
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}({self.value})"
+
 
 class SubToken(Token):
     """Token representing 2 values substracted from eachother.

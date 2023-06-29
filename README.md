@@ -1,11 +1,7 @@
 # Moonlet
-Is a turning-complete programming language, which at it's core replaces the buzz-keywords from most programming languages with strong and straight forward 'operational symbols'. Each 'symbol' is centered around the `=` (equal sign).
+Is a turing-complete programming language, which at it's core replaces the buzz-keywords from most programming languages with strong and straight forward 'operational symbols'. Each 'symbol' is centered around the `=` (equal sign).
 
 > 🚀 — *Note that this was made for a school project!*
-
-> ⚒️ — *This is a indication that this subject/section is WIP (Work In Progress).*
-
-<br>
 
 ## Table of Content
 
@@ -20,21 +16,19 @@ Is a turning-complete programming language, which at it's core replaces the buzz
     - [If-statements](#if-statements)
     - [Comments](#comments)
     - [Printing](#printing)
-    - [Input ⚒️](#input-️)
   - [Code Structure](#code-structure)
     - [Launcher](#launcher)
     - [Lexer](#lexer)
     - [Parser](#parser)
     - [Program (Interpeter)](#program-interpeter)
     - [Errors](#errors)
-  - [Testing ⚒️](#testing-️)
-  - [Turning Complete](#turning-complete)
+  - [Testing](#testing)
+  - [Tuning Complete](#tuning-complete)
   - [Higher Order Functions](#higher-order-functions)
-  - [Decorator ⚒️](#decorator-️)
-  - [Examples ⚒️](#examples-️)
+  - [Decorator](#decorator)
+  - [Examples](#examples)
 
 ## Grammer
----
 
 > *Click on a description to go to a more detail explanation.*
 
@@ -50,9 +44,6 @@ Is a turning-complete programming language, which at it's core replaces the buzz
 | `=?`   | [If-statement](#if-statement)              | <pre> =? \<comperation\> \<true\> : \<false\> </pre>             | <pre> =? x == y =! "TRUE" : =! "FALSE" </pre>        |
 | `=#`   | [Comments](#comments)                      | <pre> =# \<content\> </pre>                                      | <pre> =# comment </pre>                              |
 | `=!`   | [Priting](#printing)                       | <pre> =! \<content\> </pre>                                      | <pre> =# "Hello World!" </pre>                       |
-| `=$`   | [Input](#input)                            | <pre> =$ \<label\> </pre>                                        | <pre> =$ x </pre>                                    |
-
-<br>
 
 ### Variables
 `=: <name> <value>`
@@ -81,9 +72,9 @@ Any binary mathematical operations is done by defining a left and right value wi
 ### Operation and Assignment
 `=<operation> <label> <value>`
 
-When performing a mathematical calculation, their is an option to use a shortcut to perfrom an operation and directly assign or override a variable with the result of this calculation.
+When performing a mathematical calculation, their is an option to use a shortcut to perform an operation and directly assign or override a variable with the result of this calculation.
 
-To perfrom an operation and assign the result to the left value, by using the `=` symbol followed by the math operator symbol,
+To perform an operation and assign the result to the left value, by using the `=` symbol followed by the math operator symbol,
 which defines the operation to perform. To perform 'add and assign' operation:
 
 ```
@@ -104,7 +95,7 @@ To write a function definition the `=|` sybols are used, followed by the name, t
 
 ### Return
 
-When declaring or calling a function it's a must to return a created result, caused by this declared/called funtion. The return statement could be either: a value created within the function, another call from a different function, or calling the function again recursively.
+When declaring or calling a function it's a must to return a created result, caused by this declared/called function. The return statement could be either: a value created within the function, another call from a different function, or calling the function again recursively.
 
 `=> <value|call>`
 
@@ -143,22 +134,16 @@ When working on the code it's sometimes wanted to print a result of an action in
 =! "Printing this!"
 ```
 
-### Input ⚒️
-`=$ <label>`
-
-...
-
 ## Code Structure
----
 
-The strucute of the code can be divided in certain sections: launcher, lexer, parser and the program itself.
+The structure of the code can be divided in certain sections: launcher, lexer, parser and the program itself.
 
 > *Note: The code includes a rich documentation, to make certain parts and combinations more clear to the developer. Please read the 'docstring' or 'inline documentation' for a more in depth explanation.*
 
 | file          | description                                                                                                                                                |
 | :------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `errors.py`   | File containing the different errors that could happen when launching, lexing, parsing or running the code.                                                |
-| `launcher.py` | File containg the launcher of the code strucuture, which passes on either the plain text of a file, or the input of the console command.                   |
+| `launcher.py` | File containing the launcher of the code strucuture, which passes on either the plain text of a file, or the input of the console command.                   |
 | `lexer.py`    | File containing the Lexer, who scans the given text and turns it into Tokens, which are passed to Parser.                                                  |
 | `nodes.py`    | File containing the different Nodes that are created when the Parser parses the given tokens coming from the Lexer.                                        |
 | `parser.py`   | File containing the Parser, who recognizes the Tokens, given by the Lexer and transforms those into Nodes. These nodes form the ATS (Abstract syntax Tree) |
@@ -168,7 +153,7 @@ The strucute of the code can be divided in certain sections: launcher, lexer, pa
 ### Launcher
 `/interpreter/launcher.py`
 
-The first step in the process when running/launching the written Moonlet code or given console command is that: the launcher recieves either an action to use i/o to open file with the `.mnl` extension, which include the written Moonlet code.
+The first step in the process when running/launching the written Moonlet code or given console command is that: the launcher receives either an action to use i/o to open file with the `.mnl` extension, which include the written Moonlet code.
 
 The code is then passed to the lexer for furter tokenization. 
 
@@ -200,13 +185,13 @@ When either launching, lexing, parsing or running the program/interpreter of the
 | `ZeroDivisionError`   | This is caused when the user is trying to divide a certain value from either a variable or a constant with zero.                                                                                                        |
 | `FileNotFoundError`   | This is caused when the CLI application recieved a invalid 'path to file' input.                                                                                                                                        |
 
-## Testing ⚒️
+## Testing
 ---
 
 To validate the working and quality of the written code for this interpreter language, 3 types of tests (levels) are written. These can be found within the `/tests` folder. 
 
 - **System Tests** — `/tests/system_tests.py`
-- **Intergration Tests** — `/tests/intergration_tests.py`
+- **Integration Tests** — `/tests/integration_tests.py`
 - **Unit Tests** — `/tests/unit_tests.py`
 
 To run a test, for example the 'unit' tests, run the following within the console while being in the root folder:
@@ -215,12 +200,11 @@ To run a test, for example the 'unit' tests, run the following within the consol
 python3 -m tests.unit_tests
 ```
 
-## Turning Complete
----
+## Tuning Complete
 
-> *Note: see the [Examples](#examples) section to learn about how to run the examples, who showcase the working of this 'Turning Complete' interpreter lanuage.*
+> *Note: see the [Examples](#examples) section to learn about how to run the examples, who showcases the working of this 'Turing Complete' interpreter lanuage.*
 
-Moonlet is a Turning Complete language. This is determined by the fact the language supports important functions who are necessary to proclaim as a Turning Complete language.
+Moonlet is a Turing Complete language. This is determined by the fact the language supports important functions who are necessary to proclaim as a Turing Complete language.
 
 - [x] **I/O** — Moonlet supports a format which asks the user for an input, and shows/uses this as an output.    
 - [x] **Functions** — Moonlet supports a format for defining functions and a way to call these defined functions. 
@@ -229,7 +213,6 @@ Moonlet is a Turning Complete language. This is determined by the fact the langu
 - [x] **If-statements** — Moonlet supports conditional statements by using the if-else format.
 
 ## Higher Order Functions
---- 
 
 When developing the code of the Moonlet programming language, certain HOF (Higher-order functions). These include:
 
@@ -243,13 +226,25 @@ The sole purpose of this function is to format the (key) parameters of the given
 
 The power of the concept of any HOF (Higher-order function) are being used at it's fullest potential when looking at the different state classes for each step of the flow from beginning to end. For example the `ProgramState` class uses the `success` and `fail` functions to pass on either a state, a result or an error message.
 
-## Decorator ⚒️
----
+## Decorator
 
-...
+When setting the `--debug` flag while executing a Moonlet program from a valid file, an in depth 'debug message' will be displayed during the execution of the different steps. This is been made possible by the `@debug_log()` decorator from file: `/interpreter/utils.py`.
 
-## Examples ⚒️
----
+As an example, the decorator has being used within the `Program` class, above the `exec(...)` function:
+
+```python
+@debug_log('Program.exec')
+def exec(self, node: BaseNode, scope: Scope) -> ProgramState:
+  ...
+```
+
+As a result of using the decorator in combination with the `--debug` flag, a debug message will be displayed witin the console:
+
+```bash
+Program.exec                   VarNode('=:' x 10), <Program>
+```
+
+## Examples
 
 To showcase the strength of the interpeter language, a couple examples can be found within the `/examples` folder.
 

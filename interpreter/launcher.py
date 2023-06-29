@@ -15,11 +15,18 @@ class Launcher:
     """
 
     def __init__(self, file_path: Optional[str] = None, debug_mode: bool = False, test_mode = False) -> None:
+        """Initialise the Launcher with given file.
+
+        Args:
+            file_path: Direct path to file. Defaults to None.
+            debug_mode: If 'debug_mode' is enabled. Defaults to False.
+            test_mode: If 'test_mode' is enabled. Defaults to False.
+        """        
         self.file_path = file_path
         self.debug_mode = debug_mode
         self.test_mode = test_mode
 
-        if file_path is not None:
+        if file_path is not None and len(file_path) > 0:
 
             # Check if the given 'file_path' even exists
             if not os.path.exists(file_path):
@@ -30,117 +37,63 @@ class Launcher:
                 print(FileNotFoundError(f"File '{file_path}' has an invalid extention (must be '.mnl')"))
 
             else:
-                self.old_run_moonlet()
+                self.run_moonlet()
 
         elif test_mode:
-            pass
+            print(f"{'TESTING':-^60}")
 
     def print_error(self, error: Error) -> None:
+        """Print a given Error.
+
+        Args:
+            error: The Error to print.
+        """        
 
         file_line = f"In file '{self.file_path}', line {error.pos.line}"
         file_line += f", from {error.pos.start}" if error.pos.start else ""
         file_line += f" to {error.pos.end}" if error.pos.end else ""
 
+        if self.debug_mode: print(f"{'ERROR':=^60}")
         print(f"\nMoonlet — Traceback ({type(error).__name__}):")
         print(f"    {file_line}")
         print(error)
 
     def run_moonlet(self):
+        """Launch the Moonlet steps."""        
 
         # Run the Lexer to generate the 'tokens'
         input_file = open(self.file_path, 'r').read()
-        lexer = Lexer(text=input_file)
+        
+        if self.debug_mode: print(f"{'LEXER':-^60}")
+        
+        lexer = Lexer(input_file, self.debug_mode)
         tokens, lexer_error = lexer.run()
 
         # Check for potential errors caused 
         # during the lexing process of the file 
-        if lexer_error is not None: return print(lexer_error)
+        if lexer_error is not None: return self.print_error(lexer_error)
         
         # Run the Parser to generate the 'AST'
-        parser = Parser(tokens)
+        if self.debug_mode: print(f"{'PARSER':-^60}")
+        parser = Parser(tokens, self.debug_mode)
         ats = parser.parse()
 
         # Check for potential errors caused 
         # during the parsing process of the tokens 
-        if ats.error is not None: return print(ats.error)
+        if ats.error is not None: return self.print_error(ats.error)
 
         # Runt the Program/Interpreter to handle
         # the nodes created within the ATS
-        prog = Program()
+        if self.debug_mode: print(f"{'PROGRAM':-^60}")
+        prog = Program(self.debug_mode)
         prog_scope = Scope(name="<Program>", origin=ats.node)
         prog_result = prog.exec(ats.node, prog_scope)
 
         # Check for potential errors caused 
         # during the execution process of the Program
-        if prog_result.error is not None: return print(f"{prog_result.error}")
+        if prog_result.error is not None: return self.print_error(prog_result.error)
         
-        print(prog_scope.format_args())
-
-    def old_run_moonlet(self):
-
-        # Run the Lexer to generate the 'tokens'
-        print(f"\nLEXER\n{'='*61}")
-        input_file = open(self.file_path, 'r').read()
-        lexer = Lexer(text=input_file)
-        tokens, lexer_error = lexer.run()
-
-        if lexer_error is not None: return self.print_error(lexer_error)
-        
-        print(f"{'TOKENS': <20} | {'VALUE': ^10} | {'LINE': ^7} | {'START': ^7} | {'END': >5}")
-        print(f"{'='*61}")
-
-        line = 0
-        for token in tokens:
-
-            if line != token.pos.line:
-                print(f"{'-'*61}\n", end='')
-                line = token.pos.line
-
-            print(f"{token.__class__.__name__: <20} | {repr(token.value): ^10} | {token.pos.line: ^7} | {token.pos.start: ^7} | {token.pos.end: >5}")
-
-        # Run the Parser to generate the 'AST'
-        print(f"\nPARSER\n{'='*61}")
-        parser = Parser(tokens)
-        ats = parser.parse()
-
-        if ats.error is not None: 
-            self.print_error(ats.error)
-            return
-        
-        # print(f"{ats.node}")
-        print(f"\n{'='*61}")
-        print(f"{'NODES': <61}")
-        print(f"{'='*61}")
-
-        if ats.node is not None:
-            for sub_node in ats.node.items:
-                for name, value in sub_node.__dict__.items():
-
-                    if name == 'args' or name == 'body':
-                        print(f"{name: <15}")
-                        for item in value.items:
-                            print(f"{' '*15}", end=' ')
-                            print(f"{str(item): <45}")
-                    
-                    else:
-                        print(f"{name: <15}", end=' ')
-                        print(f"{str(value): <45}")                    
-                
-                print(f"{'-'*61}\n", end='')
-                
-                # print(f"{node.type: <15}", end=' | ')
-                # print(f"{node}")
-
-        # Run the Interpeter to execute the 'AST'
-        print(f"\nPROGRAM\n{'='*61}")
-        prog = Program()
-        prog_scope = Scope(name="<Program>", origin=ats.node)
-        prog_result = prog.exec(ats.node, prog_scope)
-
-        if prog_result.error is not None:
-            self.print_error(prog_result.error)
-            # print(f"{'='*61}")
-
-        print(f"{'='*61}")
-        print(prog_scope.format_args())
-        # print(prog_scope)
+        if self.debug_mode:
+            print('')
+            print(f"{'='*60}")
+            print(f"{'RESULT_PROGRAM:': <30} {str(prog_scope.format_args()): <50}")
