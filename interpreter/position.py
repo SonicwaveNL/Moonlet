@@ -33,6 +33,11 @@ class Position:
     def __repr__(self) -> str:
         return f"Position(line={self.line!r}, start={self.start!r}, end={self.end!r})"
 
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, Position):
+            return False
+        return self.line == rhs.line and self.start == rhs.start and self.end == rhs.end
+
     def next(self, steps: Optional[int] = 1):
         """Go to the next position.
 

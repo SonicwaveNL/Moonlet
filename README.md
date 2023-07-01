@@ -143,7 +143,7 @@ The structure of the code can be divided in certain sections: launcher, lexer, p
 | file          | description                                                                                                                                                |
 | :------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `errors.py`   | File containing the different errors that could happen when launching, lexing, parsing or running the code.                                                |
-| `launcher.py` | File containing the launcher of the code strucuture, which passes on either the plain text of a file, or the input of the console command.                   |
+| `launcher.py` | File containing the launcher of the code strucuture, which passes on either the plain text of a file, or the input of the console command.                 |
 | `lexer.py`    | File containing the Lexer, who scans the given text and turns it into Tokens, which are passed to Parser.                                                  |
 | `nodes.py`    | File containing the different Nodes that are created when the Parser parses the given tokens coming from the Lexer.                                        |
 | `parser.py`   | File containing the Parser, who recognizes the Tokens, given by the Lexer and transforms those into Nodes. These nodes form the ATS (Abstract syntax Tree) |
@@ -155,22 +155,42 @@ The structure of the code can be divided in certain sections: launcher, lexer, p
 
 The first step in the process when running/launching the written Moonlet code or given console command is that: the launcher receives either an action to use i/o to open file with the `.mnl` extension, which include the written Moonlet code.
 
-The code is then passed to the lexer for furter tokenization. 
+The code is then passed to the Lexer for furter tokenization. 
 
 ### Lexer
 `/interpreter/lexer.py`
 
 When being passed the plain text, recieved by the launcher of the Moonlet interpreter, the Lexer scans the written code line by line. After recognizing certain patterns and/or expressions, the Lexer transforms the plain text to Tokens. These different tokens can be found in the `/interpreter/tokens.py` file.
 
+| From      | To                                                                                                                       |
+| :-------- | :----------------------------------------------------------------------------------------------------------------------- |
+| Text      | Tokens                                                                                                                   |
+| `=: x 10` | <pre>VarToken('=:', Position(0, 0, 1)),<br>IDToken('x', Position(0, 3, 3)),<br>IntegerToken(10, Position(0, 5, 6))</pre> |
+
 ### Parser
 `/interpreter/parser.py`
 
-...
+When passed the Tokens, created by the Lexer, the parser goes over each given Token. The Parser parses a Token and transforms it into a Node, containing possibly a value, parameters, arguments, labal names and almost always a reference to the Token.
+
+The nodes created are an enumeration of the ATS (Abstract Syntax Tree), which in turn is used by the interpreter to interpret and execute the created flow of the actuall program.
+
+| From                                                                                                                     | To                                                                                                                                                                                                                                                                                                                                                              |
+| :----------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tokens                                                                                                                   | Nodes                                                                                                                                                                                                                                                                                                                                                           |
+| <pre>VarToken('=:', Position(0, 0, 1)),<br>IDToken('x', Position(0, 3, 3)),<br>IntegerToken(10, Position(0, 5, 6))</pre> | <pre>ListNode([<br>  VarNode(<br>    id=IDNode(<br>      token=IDToken(value="x", pos=Position(line=0, start=3, end=3))<br>    ),<br>    value=NumberNode(<br>       token=IntegerToken(value=10, pos=Position(line=0, start=5, end=6))<br>    ),<br>    token=VarToken(<br>       value="=:", pos=Position(line=0, start=0, end=1)<br>    )<br>  )<br>])</pre> |
 
 ### Program (Interpeter)
 `/interpreter/program.py`
 
-...
+When passed the Nodes, created by the Parser, the Program initialises and creates a starting state with a new Program `Scope`. The Program iterates over each given token and performs/executes an operation accordingly. The Program executes functions, creates values and looks-up any value/function/parameter when needed within the current scope. 
+
+When creating a function, a new "blueprint" will be created and filled in when calling the build function. This function has it's own scope, within the Program scope, and is only allowed to look at the global scope when looking for other functions within the Program.
+
+> *Note: Use the `-d` or `--debug` flag when running to see the Program Scope as a result of the Program.*
+
+| From                                                                                                                                                                                                                                                                                                                                                            | To   |
+| :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--- |
+| <pre>ListNode([<br>  VarNode(<br>    id=IDNode(<br>      token=IDToken(value="x", pos=Position(line=0, start=3, end=3))<br>    ),<br>    value=NumberNode(<br>       token=IntegerToken(value=10, pos=Position(line=0, start=5, end=6))<br>    ),<br>    token=VarToken(<br>       value="=:", pos=Position(line=0, start=0, end=1)<br>    )<br>  )<br>])</pre> | Program Scope: <pre>{'x': '10'}</pre> |
 
 ### Errors
 
@@ -190,14 +210,14 @@ When either launching, lexing, parsing or running the program/interpreter of the
 
 To validate the working and quality of the written code for this interpreter language, 3 types of tests (levels) are written. These can be found within the `/tests` folder. 
 
-- **System Tests** — `/tests/system_tests.py`
-- **Integration Tests** — `/tests/integration_tests.py`
+- **System Tests** — `/tests/system_test.py`
+- **Integration Tests** — `/tests/intergration_test.py`
 - **Unit Tests** — `/tests/unit_tests.py`
 
 To run a test, for example the 'unit' tests, run the following within the console while being in the root folder:
 
 ```bash
-python3 -m tests.unit_tests
+python3 -m unittest tests.unit_tests
 ```
 
 ## Tuning Complete
@@ -206,11 +226,11 @@ python3 -m tests.unit_tests
 
 Moonlet is a Turing Complete language. This is determined by the fact the language supports important functions who are necessary to proclaim as a Turing Complete language.
 
-- [x] **I/O** — Moonlet supports a format which asks the user for an input, and shows/uses this as an output.    
 - [x] **Functions** — Moonlet supports a format for defining functions and a way to call these defined functions. 
 - [x] **Recursion** — Moonlet supports recursion within functions. This could either be the same or another function.
 - [x] **Loops** — Moonlet supports a format of creating a iteration over certain values with the power of recursion.
 - [x] **If-statements** — Moonlet supports conditional statements by using the if-else format.
+- [x] **I/O** — Moonlet application supports a format which asks the user for an input, and shows/uses this as an output. 
 
 ## Higher Order Functions
 
@@ -251,5 +271,5 @@ To showcase the strength of the interpeter language, a couple examples can be fo
 To run an example, for example the '' example, run the following within the console while being in the root folder:
 
 ```bash
-python3 -m Moonlet.py examples.test_operations
+python3 Moonlet.py examples/test_operations.mnl
 ```

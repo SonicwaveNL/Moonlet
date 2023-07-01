@@ -1,8 +1,7 @@
 from __future__ import annotations
 from typing import Optional, Union, List
-
 from interpreter.tokens import Token
-from .tokens import (
+from interpreter.tokens import (
     Token,
     IntegerToken,
     FloatToken,
@@ -55,6 +54,11 @@ class BaseNode:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(token={self.token!r})"
 
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token
+
 
 class NumberNode(BaseNode):
     """Node representing a Number value.
@@ -76,6 +80,11 @@ class NumberNode(BaseNode):
     def value(self):
         return self.token.value
 
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token and self.value == rhs.value
+
 
 class StringNode(BaseNode):
     """Node representing a String value.
@@ -96,6 +105,11 @@ class StringNode(BaseNode):
     @property
     def value(self):
         return self.token.value
+
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token and self.value == rhs.value
 
 
 class IDNode(BaseNode):
@@ -124,6 +138,11 @@ class IDNode(BaseNode):
     def value(self):
         return self.token.value
 
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token and self.value == rhs.value
+
 
 class BooleanNode(BaseNode):
     """Node representing a Boolean value.
@@ -144,6 +163,11 @@ class BooleanNode(BaseNode):
     @property
     def value(self):
         return self.token.value
+
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token and self.value == rhs.value
 
 
 class ListNode(BaseNode):
@@ -200,6 +224,11 @@ class ParamNode(BaseNode):
     @property
     def value(self):
         return self.token.value
+
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token and self.value == rhs.value
 
 
 class CompareOpNode(BaseNode):
@@ -283,6 +312,13 @@ class AssignOpNode(BaseNode):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id={self.id!r}, value={self.value!r}, token={self.token!r})"
 
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return (
+            self.token == rhs.token and self.value == rhs.value and self.value == rhs.id
+        )
+
 
 class BinaryOpNode(BaseNode):
     """Node representing a Binary Operation.
@@ -320,6 +356,11 @@ class BinaryOpNode(BaseNode):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(lhs={self.lhs!r}, rhs={self.rhs!r}, token={self.token!r})"
+
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token and self.lhs == self.rhs
 
 
 class VarNode(BaseNode):
@@ -359,6 +400,11 @@ class VarNode(BaseNode):
     def name(self) -> str:
         return self.id.value
 
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token and self.value == rhs.value and self.id == rhs.id
+
 
 class ReturnNode(BaseNode):
     """Node representing a Return statement.
@@ -392,6 +438,11 @@ class ReturnNode(BaseNode):
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(return_value={self.return_value!r}, token={self.token!r})"
+
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token and self.return_value == rhs.return_value
 
 
 class FuncNode(BaseNode):
@@ -450,6 +501,11 @@ class FuncNode(BaseNode):
     def name(self) -> str:
         return self.id.value
 
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token and self.id == rhs.id
+
 
 class CallNode(BaseNode):
     """Node representing a Function Call.
@@ -499,6 +555,11 @@ class CallNode(BaseNode):
     @property
     def name(self) -> str:
         return self.id.value
+
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token and self.id == rhs.id
 
 
 class ConditionsNode(BaseNode):
@@ -580,3 +641,8 @@ class PrintNode(BaseNode):
     @property
     def value(self):
         return self.to_print.value
+
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)):
+            return False
+        return self.token == rhs.token and self.value == rhs.value

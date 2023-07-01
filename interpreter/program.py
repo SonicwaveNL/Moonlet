@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Optional, List, Union, Any
 from copy import deepcopy
-from .tokens import (
+from interpreter.tokens import (
     AddToken,
     SubToken,
     MulToken,
@@ -17,7 +17,7 @@ from .tokens import (
     AssignMulToken,
     AssignDivToken,
 )
-from .nodes import (
+from interpreter.nodes import (
     BaseNode,
     NumberNode,
     StringNode,
@@ -35,14 +35,14 @@ from .nodes import (
     ConditionsNode,
     PrintNode,
 )
-from .errors import (
+from interpreter.errors import (
     Error,
     InvalidSyntaxError,
     NotImplementedError,
     RunTimeError,
     ZeroDivisionError,
 )
-from .utils import debug_log
+from interpreter.utils import debug_log
 
 
 class Empty:
@@ -493,8 +493,6 @@ class Program:
         """
         p_state = ProgramState()
 
-        # self.__show(node, scope)
-
         if isinstance(node, NumberNode):
             return p_state.run(self.exec_number_node(node))
 
@@ -906,8 +904,6 @@ class Program:
         func = Function(node, node.body, func_scope)
 
         scope.set(node.name, func)
-
-        self.__show(node, func_scope)
 
         return p_state.success(func)
 

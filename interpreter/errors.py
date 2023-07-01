@@ -1,5 +1,5 @@
 from typing import Optional
-from .position import Position
+from interpreter.position import Position
 
 
 class Error:

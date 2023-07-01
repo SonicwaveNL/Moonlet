@@ -1,7 +1,7 @@
 import re
 from typing import Optional, Tuple, Union, List
 from functools import reduce
-from .tokens import (
+from interpreter.tokens import (
     TokenTypes,
     NewLineToken,
     FloatToken,
@@ -10,9 +10,9 @@ from .tokens import (
     EOFToken,
     CommentToken,
 )
-from .position import Position
-from .errors import Error, InvalidSyntaxError
-from .utils import debug_log
+from interpreter.position import Position
+from interpreter.errors import Error, InvalidSyntaxError
+from interpreter.utils import debug_log
 
 
 class Lexer:
@@ -25,11 +25,11 @@ class Lexer:
         error: Optional causes Error. Defaults to None.
     """
 
-    def __init__(self, text: str, debug_mode: bool = False):
+    def __init__(self, text: str = "", debug_mode: bool = False):
         """Initialise the Lexer with the given text.
 
         Args:
-            text: input text to lexial.
+            text: input text to lexial. Defaults to Empty str.
             debug_mode: If 'debug mode' is enabled. Defaults to False.
         """
         self.text = text

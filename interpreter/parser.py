@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Optional, List, Any, Union
 from copy import deepcopy
-from .tokens import (
+from interpreter.tokens import (
     Token,
     IntegerToken,
     FloatToken,
@@ -37,7 +37,7 @@ from .tokens import (
     ReturnToken,
     PrintToken,
 )
-from .nodes import (
+from interpreter.nodes import (
     BaseNode,
     NumberNode,
     StringNode,
@@ -55,12 +55,12 @@ from .nodes import (
     ConditionsNode,
     PrintNode,
 )
-from .errors import (
+from interpreter.errors import (
     Error,
     InvalidSyntaxError,
     NotImplementedError,
 )
-from .utils import debug_log
+from interpreter.utils import debug_log
 
 
 class ParseState:
@@ -430,14 +430,8 @@ class Parser:
 
             start_block = self.current
 
-            # self.next()
-
-            # if not isinstance(self.current, NewLineToken):
-            #     return p_state.fail(InvalidSyntaxError("Expected a 'Newline' after '={'"))
-
             self.next()
 
-            # body_nodes = p_state.add(self.func_body())
             body_nodes = p_state.add(self.code_block())
             if p_state.failed():
                 return p_state
@@ -901,11 +895,6 @@ class Parser:
             to_print_node = p_state.add(self.expr())
             if p_state.failed():
                 return p_state
-
-            # if not isinstance(self.current, (NewLineToken, EOFToken)):
-            #     return p_state.fail(
-            #         InvalidSyntaxError(f"Expected 'newline', 'EOF'")
-            #     )
 
             return p_state.success(PrintNode(to_print_node, base_token))
 

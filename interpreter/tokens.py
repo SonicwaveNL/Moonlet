@@ -1,7 +1,7 @@
 from typing import Optional, Union
 from enum import Enum
 from interpreter.position import Position
-from .position import Position
+from interpreter.position import Position
 
 
 class Token:
@@ -31,6 +31,10 @@ class Token:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(value={self.value!r}, pos={self.pos!r})"
+    
+    def __eq__(self, rhs: object) -> bool:
+        if not isinstance(rhs, type(self)): return False
+        return self.value == rhs.value and self.pos == rhs.pos
 
 
 class IntegerToken(Token):
